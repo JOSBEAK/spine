@@ -6,8 +6,14 @@ import { I } from './icons.js';
 export const thickness = (b, scale = 1) => Math.round(Math.min(46, Math.max(12, (b.pages || 220) / 13)) * scale);
 export const toneOf = b => store.tone(b.id) || b.tone || clothFor(b.id);
 
+export const isBorrow = b => b.access === 'borrowable';
+export const isTextbook = b => b.kind === 'textbook';
+
 function frontHTML(b) {
   const tone = toneOf(b);
+  if (isTextbook(b)) {
+    return `<div class="tb ${isLight(tone) ? 'light' : ''}" style="background:${tone}">${b.coverArt ? `<img src="${b.coverArt}" alt="" loading="lazy" decoding="async">` : `<b>${esc(b.title)}</b>`}<i>${esc(b.subject)}</i><small>OpenStax</small></div>`;
+  }
   const gen = `<div class="gen ${isLight(tone) ? 'light' : ''}"><b>${esc(b.title)}</b><i>${esc(b.author)}</i></div>`;
   const url = coverURL(b);
   return url
@@ -21,7 +27,8 @@ export function bookHTML(b, o = {}) {
   const p = store.progress(b.id);
   const pct = p ? Math.round(p.pct * 100) : null;
   const audio = b.audio || store.found(b.id)?.lv;
-  const cap = o.cap === false ? '' : `<div class="bk-cap"><b>${esc(b.title)}</b><span>${esc(b.author)}${b.year ? ` · ${esc(b.year)}` : ''}${audio ? ` · <span class="audio" title="Has a free audiobook">${I.hp}</span>` : ''}</span>${o.meter && pct != null ? `<div class="meter"><i style="width:${pct}%"></i></div>` : ''}</div>`;
+  const tag = isTextbook(b) ? '<em class="tag tag-tb">Textbook</em>' : isBorrow(b) ? '<em class="tag" title="Borrow free with an Internet Archive account">Borrow</em>' : '';
+  const cap = o.cap === false ? '' : `<div class="bk-cap"><b>${esc(b.title)}</b><span>${tag}${esc(b.author)}${b.year ? ` · ${esc(b.year)}` : ''}${audio ? ` · <span class="audio" title="Has a free audiobook">${I.hp}</span>` : ''}</span>${o.meter && pct != null ? `<div class="meter"><i style="width:${pct}%"></i></div>` : ''}</div>`;
   const ribbon = pct != null && pct < 99 && o.ribbon !== false;
   return `<a class="bk ${o.cls || ''}" href="#/book/${b.id}" data-id="${b.id}" style="--tone:${toneOf(b)};--t:${t}px;${o.i != null ? `--i:${o.i};` : ''}" aria-label="${esc(b.title)} by ${esc(b.author)}">
     <div class="bk-scene"><div class="bk-shadow"></div><div class="bk-body">

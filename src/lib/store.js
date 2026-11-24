@@ -13,13 +13,14 @@ const state = {
   progress: read('progress', {}),      // bookId -> { ch, frac, pct, chTitle, t }
   books: read('books', {}),            // bookId -> slim book record for library/continue rows
   prefs: read('prefs', { fs: 18, tone: 'white', face: 'serif' }),
-  sources: read('sources', { gutenberg: true, archive: true, librivox: true }),
+  sources: { gutenberg: true, archive: true, librivox: true, lending: true, openstax: true, ...read('sources', {}) },
   found: read('found', {}),            // bookId -> { gut, lv } resolved source ids (null = none)
   tones: read('tones', {}),            // bookId -> sampled cover colour
   audio: read('audio', null),          // { bookId, item, track, time }
 };
 
-const slim = b => ({ id: b.id, title: b.title, author: b.author, year: b.year, pages: b.pages, cover: b.cover, tone: b.tone, gut: b.gut, scan: b.scan, lv: b.lv, audio: b.audio, blurb: b.blurb });
+const KEEP = ['id', 'title', 'author', 'year', 'pages', 'cover', 'tone', 'gut', 'scan', 'lv', 'audio', 'blurb', 'kind', 'access', 'lend', 'coverArt', 'pdf', 'web', 'subject', 'subjects'];
+const slim = b => Object.fromEntries(KEEP.filter(k => b[k] != null).map(k => [k, b[k]]));
 
 export const store = {
   get prefs() { return state.prefs; },

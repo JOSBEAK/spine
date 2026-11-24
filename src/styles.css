@@ -520,3 +520,18 @@ a.stream{color:inherit}
 .bk-sheen{z-index:3}
 .more{min-height:60px}
 body.has-player .view{padding-bottom:150px}
+
+/* textbook covers: OpenStax's square card art on a book-shaped cover in the same colour */
+.tb{position:absolute;inset:0;display:flex;flex-direction:column;color:#fff;padding-bottom:9%;background:var(--tone)}
+.tb.light{color:#1b1d22}
+.tb img{position:relative!important;inset:auto!important;width:100%;height:auto!important;aspect-ratio:1;object-fit:contain;display:block}
+.tb b{font-family:var(--f-display);font-weight:400;font-size:calc(var(--w) * .12);line-height:1.1;padding:14% 12% 0}
+.tb i{font-style:normal;font-family:var(--f-ui);font-size:calc(var(--w) * .07);font-weight:500;opacity:.9;padding:8% 12% 0;margin-top:auto}
+.tb small{font-family:var(--f-mono);font-size:calc(var(--w) * .055);letter-spacing:.08em;text-transform:uppercase;opacity:.75;padding:3% 12% 0}
+
+/* small labels in captions */
+.bk-cap .tag{font-style:normal;display:inline-block;font-size:10.5px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:#7a5a12;background:#fbf1d6;border-radius:4px;padding:1px 5px;margin-right:6px;vertical-align:1px}
+.bk-cap .tag-tb{color:#24508a;background:#e6eef9}
+.chips .lbl-wide{width:100%;font-size:12.5px;color:var(--ink-3);margin-top:4px}
+.note{margin-top:10px;font-size:13.5px;color:var(--ink-2);max-width:60ch}
+.note a{text-decoration:underline;text-underline-offset:3px}
