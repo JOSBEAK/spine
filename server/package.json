@@ -1,0 +1,22 @@
+{
+  "name": "spine-server",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Spine API: accounts, sync, history, taste and recommendations for the Spine free-books app.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "0.5.11",
+    "@hono/node-server": "2.1.6",
+    "hono": "4.13.16",
+    "postgres": "3.4.9",
+    "zod": "4.6.6"
+  }
+}

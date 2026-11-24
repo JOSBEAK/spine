@@ -6,16 +6,23 @@ import { bookHTML, applyTone, isBorrow, isTextbook } from '../ui/book.js';
 import { rowHTML, wireRows } from '../ui/rows.js';
 import { I } from '../ui/icons.js';
 import { toast } from '../ui/toast.js';
+import { fillActivity } from '../ui/activity.js';
 
 export function bookLoading() {
   return { html: `<section class="detail"><div class="detail-grid"><div class="stage3d"></div><div class="info"><p class="eyebrow">Finding this book…</p></div></div></section>`, wire() {} };
 }
 
-const stream = (kind, { icon, title, text, src, go, best, disabled, checking, href }) => {
+// One row per way to read, like Stremio's stream list: the row opens it inside Spine,
+// the small arrow opens the original site in a new tab.
+const stream = (kind, { icon, title, text, src, go, best, disabled, checking, href, ext }) => {
   const tag = href ? 'a' : 'button';
   const attrs = href ? `href="${href}" target="_blank" rel="noopener"` : `type="button" data-way="${kind}" ${disabled ? 'disabled' : ''}`;
-  return `<li data-li="${kind}"><${tag} class="stream ${best ? 'best' : ''} ${checking ? 'checking' : ''}" ${attrs}><span class="ic">${icon}</span><span><b>${title}</b><span>${text}</span><span class="src">${src}</span></span><span class="go">${go}</span></${tag}></li>`;
+  const out = ext && !disabled ? `<a class="stream-ext" href="${ext}" target="_blank" rel="noopener" aria-label="Open ${esc(title)} in your browser" title="Open in browser">${I.ext}</a>` : '';
+  return `<li data-li="${kind}" class="${ext && !disabled ? 'has-ext' : ''}"><${tag} class="stream ${best ? 'best' : ''} ${checking ? 'checking' : ''}" ${attrs}><span class="ic">${icon}</span><span><b>${title}</b><span>${text}</span><span class="src">${src}</span></span><span class="go">${go}</span></${tag}>${out}</li>`;
 };
+
+const gutenbergURL = item => { const m = /(\d{1,6})gut$/.exec(item || ''); return m ? `https://www.gutenberg.org/ebooks/${parseInt(m[1], 10)}` : 'https://www.gutenberg.org'; };
+const iaURL = item => `https://archive.org/details/${encodeURIComponent(item)}`;
 
 // A book first published before 1929 may be public domain in the US, so free libraries can have it.
 const maybePublicDomain = b => !b.year || parseInt(b.year, 10) < 1929 || /BC|c\./.test(b.year);
@@ -24,7 +31,7 @@ function textbookWays(b) {
   const S = store.sources;
   if (S.openstax === false) return { list: '', n: 0 };
   return {
-    list: stream('web', { icon: I.book, title: 'Read online', text: 'The full textbook in your browser, with search, figures and practice questions.', src: 'OpenStax', go: 'Open', best: true, href: b.web })
+    list: stream('textbook', { icon: I.book, title: 'Read here', text: 'The full textbook with figures and practice questions, inside Spine.', src: 'OpenStax', go: 'Read here', best: true, ext: b.web })
       + (b.pdf ? stream('pdf', { icon: I.down, title: 'Download the PDF', text: 'Keep it offline or print the chapters you need', src: 'OpenStax', go: 'Download', href: b.pdf }) : ''),
     n: 1,
   };
@@ -36,25 +43,25 @@ function ways(b, st) {
   const borrow = isBorrow(b);
   const old = maybePublicDomain(b);
   if (borrow && S.lending !== false) {
-    out.push(stream('borrow', { icon: I.scan, title: 'Borrow free', text: 'Read in your browser for an hour, or borrow it for 14 days. You sign in with a free Internet Archive account.', src: 'Open Library lending library', go: 'Borrow', best: !st.gut, href: borrowURL(b) }));
+    out.push(stream('borrow', { icon: I.scan, title: 'Borrow free', text: 'Read it here for an hour, or borrow it for 14 days. Needs a free Internet Archive account, which you sign in to inside Spine.', src: 'Open Library lending library', go: 'Read here', best: !st.gut, ext: borrowURL(b) }));
   }
   if (S.gutenberg !== false && (!borrow || old)) {
     out.push(st.gut === undefined
       ? stream('read', { icon: I.book, title: 'Read in Spine', text: 'Looking for a clean copy…', src: 'Project Gutenberg', go: 'Checking', checking: true, disabled: true })
       : st.gut
-        ? stream('read', { icon: I.book, title: 'Read in Spine', text: 'Clean text with page turns. Change the font and size.', src: 'Project Gutenberg', go: 'Open', best: true })
+        ? stream('read', { icon: I.book, title: 'Clean text', text: 'Typeset text with page turns, highlights and a dictionary.', src: 'Project Gutenberg', go: 'Read here', best: true, ext: gutenbergURL(st.gut) })
         : borrow ? '' : stream('read', { icon: I.book, title: 'Read in Spine', text: "Project Gutenberg doesn't have a typeset copy of this book.", src: 'Project Gutenberg', go: 'Not available', disabled: true }));
   }
   if (S.archive !== false && !borrow) {
     out.push(b.scan
-      ? stream('scan', { icon: I.scan, title: 'Original printed pages', text: 'Page-by-page scan of a printed edition', src: 'Internet Archive', go: 'View scan', best: S.gutenberg === false || st.gut === null })
+      ? stream('scan', { icon: I.scan, title: 'Original printed pages', text: 'Every page of a printed edition, with page turns and bookmarks.', src: 'Internet Archive', go: 'Read here', best: S.gutenberg === false || st.gut === null, ext: iaURL(b.scan) })
       : stream('scan', { icon: I.scan, title: 'Original printed pages', text: 'No public scan of this book', src: 'Internet Archive', go: 'Not available', disabled: true }));
   }
   if (S.librivox !== false && old) {
     out.push(st.lv === undefined
       ? stream('listen', { icon: I.ear, title: 'Listen', text: 'Looking for a recording…', src: 'LibriVox', go: 'Checking', checking: true, disabled: true })
       : st.lv
-        ? stream('listen', { icon: I.ear, title: 'Listen', text: `Full recording${st.lv.runtime ? ` · ${st.lv.runtime}` : ''}`, src: 'LibriVox', go: 'Play' })
+        ? stream('listen', { icon: I.ear, title: 'Listen', text: `Full recording${st.lv.runtime ? ` · ${st.lv.runtime}` : ''}`, src: 'LibriVox', go: 'Play here', ext: iaURL(st.lv.item) })
         : borrow ? '' : stream('listen', { icon: I.ear, title: 'Listen', text: 'No volunteer recording yet', src: 'LibriVox', go: 'Not available', disabled: true }));
   }
   if (S.gutenberg !== false && st.epub) {
@@ -69,9 +76,9 @@ function moreLike(b) {
     const same = searchTextbooks('', b.subject).filter(x => x.id !== b.id);
     return rowHTML({ title: `More ${b.subject.toLowerCase()} textbooks`, books: same.length ? same : searchTextbooks().filter(x => x.id !== b.id).slice(0, 20) });
   }
-  return rowHTML({ title: 'More like this', load: async () => {
+  return rowHTML({ title: 'More like this', load: async page => {
     const subj = b.subjects?.[0] || b.genre && { Romance: 'Love stories', Mystery: 'Detective and mystery stories', Gothic: 'Horror tales', SciFi: 'Science fiction', Adventure: 'Adventure stories', Children: "Children's stories", Ideas: 'Philosophy', Poetry: 'Poetry', Classics: 'Classic literature' }[b.genre];
-    const r = await search({ subject: subj || '', q: subj ? '' : b.author, limit: 24 });
+    const r = await search({ subject: subj ? (subj.includes(':') ? subj : `subject:"${subj}"`) : '', q: subj ? '' : `author:"${b.author}"`, page, limit: 24 });
     return r.books.filter(x => x.id !== b.id);
   } });
 }
@@ -87,11 +94,9 @@ export function bookPage(b) {
     : `${b.year ? `<div><dt>First published</dt><dd>${esc(b.year)}</dd></div>` : ''}
        ${b.pages ? `<div><dt>Length</dt><dd>${b.pages} pages</dd></div><div><dt>Reading time</dt><dd>${readingTime(b.pages)}</dd></div>` : ''}
        ${borrow ? '<div><dt>Access</dt><dd>Borrow free</dd></div>' : `<div data-audio-fact><dt>Audiobook</dt><dd class="dim">${b.audio || 'Checking…'}</dd></div>`}`;
-  const primary = tb
-    ? `<a class="btn btn-ink" href="${b.web}" target="_blank" rel="noopener">Read online ${I.ext}</a>`
-    : borrow && !p
-      ? `<a class="btn btn-ink" data-borrow href="${borrowURL(b)}" target="_blank" rel="noopener">Borrow free ${I.ext}</a>`
-      : `<button class="btn btn-ink" data-primary>${p ? `Keep reading · ${Math.round(p.pct * 100)}%` : 'Start reading'} ${I.arrowR}</button>`;
+  const ext = tb ? b.web : borrow ? borrowURL(b) : null;
+  const primary = `<button class="btn btn-ink" data-primary>${p && !tb && !borrow ? `Keep reading · ${Math.round(p.pct * 100)}%` : borrow ? 'Read here' : 'Start reading'} ${I.arrowR}</button>`
+    + (ext ? `<a class="btn btn-line" href="${ext}" target="_blank" rel="noopener">Open in browser ${I.ext}</a>` : '');
   const authorLink = tb ? esc(b.author) : `<a href="#/discover?q=${encodeURIComponent(b.author)}&mode=all&sort=relevance">${esc(b.author)}</a>`;
   const ambient = b.cover ? `background-image:url(${coverURL(b, 'M')})` : `background:${b.tone}`;
   const initial = tb ? textbookWays(b) : ways(b, store.found(b.id) && 'gut' in store.found(b.id) ? { gut: store.found(b.id).gut } : (b.gut ? { gut: b.gut } : {}));
@@ -117,6 +122,7 @@ export function bookPage(b) {
           ${borrow ? `<p class="note">Borrowing works like a public library: one reader at a time per copy, so popular books can have a waitlist. ${store.sources.lending === false ? 'Lending is turned off in <a href="#/sources">Sources</a>.' : ''}</p>` : ''}
           ${tb && store.sources.openstax === false ? '<p class="note">OpenStax is turned off in <a href="#/sources">Sources</a>.</p>' : ''}
         </div>
+        <div class="activity ways" data-activity></div>
         ${!tb && b.subjects?.length ? `<div class="subjects">${b.subjects.map(s => `<a href="#/discover?subject=${encodeURIComponent(s)}&label=${encodeURIComponent(s)}&mode=all">${esc(s)}</a>`).join('')}</div>` : ''}
       </div>
     </div>
@@ -138,9 +144,13 @@ export function bookPage(b) {
         sb.lastElementChild.textContent = on ? 'On your shelf' : 'Add to shelf';
         toast(on ? 'Added to your shelf' : 'Removed from your shelf');
       };
-      // borrowing counts as "want to read" so the book stays easy to find
-      $('[data-borrow]', root)?.addEventListener('click', () => { if (!store.onShelf(b.id)) { store.toggleShelf(b); sb.setAttribute('aria-pressed', true); sb.lastElementChild.textContent = 'On your shelf'; } });
-      if (tb) return;
+      store.track('view', b);
+      fillActivity($('[data-activity]', root), b);
+      if (tb) {
+        $$('[data-way]', root).forEach(btn => btn.onclick = () => actions.textbook(b, btn));
+        $('[data-primary]', root).onclick = e => actions.textbook(b, e.currentTarget);
+        return;
+      }
 
       const borrow = isBorrow(b), old = maybePublicDomain(b);
       const st = { gut: b.gut || (borrow && !old ? null : undefined), lv: old ? undefined : null };
@@ -181,10 +191,11 @@ export function bookPage(b) {
 
       $('[data-primary]', root)?.addEventListener('click', async e => {
         const btn = e.currentTarget;
+        if (borrow && !st.gut) return actions.borrow(b, btn);
         if (st.gut === undefined) { btn.disabled = true; try { st.gut = await findText(b); } catch { st.gut = null; } btn.disabled = false; }
         if (st.gut && store.sources.gutenberg !== false) actions.read(b, btn);
         else if (b.scan && store.sources.archive !== false) actions.scan(b, btn);
-        else if (borrow && store.sources.lending !== false) window.open(borrowURL(b), '_blank', 'noopener');
+        else if (borrow && store.sources.lending !== false) actions.borrow(b, btn);
         else toast('No free copy of this book is available to read yet.');
       });
     },

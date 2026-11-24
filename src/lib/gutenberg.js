@@ -153,9 +153,10 @@ export function chapterHTML(c, { first = true } = {}) {
     ? `<div class="ch"><small>${esc(label.toUpperCase())}</small><b>${esc(titleCase(c.sub))}</b></div>`
     : `<div class="ch"><b>${esc(titleCase(label || 'Opening'))}</b></div>`;
   let firstDone = !first;
-  return head + c.paras.map(p => {
-    if (p.cls) return `<p class="${p.cls}">${p.html}</p>`;
-    if (!firstDone && p.html.length > 120) { firstDone = true; return `<p class="first">${p.html}</p>`; }
-    return `<p>${p.html}</p>`;
+  // data-p is the paragraph's index in the chapter: highlights and jumps are anchored to it
+  return head + c.paras.map((p, i) => {
+    if (p.cls) return `<p class="${p.cls}" data-p="${i}">${p.html}</p>`;
+    if (!firstDone && p.html.length > 120) { firstDone = true; return `<p class="first" data-p="${i}">${p.html}</p>`; }
+    return `<p data-p="${i}">${p.html}</p>`;
   }).join('');
 }

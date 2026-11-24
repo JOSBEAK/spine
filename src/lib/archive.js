@@ -105,3 +105,29 @@ export function loadText(item) {
   })().catch(e => { textCache.delete(item); throw e; }));
   return textCache.get(item);
 }
+
+const scanCache = new Map();
+/**
+ * Page images for a public scan, from the Internet Archive's IIIF service.
+ * Resolves to { pages: [{ service, w, h, label }], title }.
+ */
+export function loadScan(item) {
+  if (!scanCache.has(item)) scanCache.set(item, (async () => {
+    const m = await fetchJSON(`https://iiif.archive.org/iiif/3/${encodeURIComponent(item)}/manifest.json`, { timeout: 25000 });
+    const pages = (m.items || []).map(c => {
+      const body = c.items?.[0]?.items?.[0]?.body || {};
+      const svc = Array.isArray(body.service) ? body.service[0] : body.service;
+      const label = c.label ? Object.values(c.label)[0]?.[0] : '';
+      return { service: svc?.id || svc?.['@id'] || null, full: body.id, w: c.width || body.width || 1000, h: c.height || body.height || 1500, label };
+    }).filter(p => p.service || p.full);
+    if (!pages.length) throw new Error('This scan has no pages.');
+    return { pages };
+  })().catch(e => { scanCache.delete(item); throw e; }));
+  return scanCache.get(item);
+}
+
+/** A page image at about `width` pixels wide (rounded so the browser cache gets reused). */
+export function scanImage(page, width) {
+  const w = Math.min(page.w, [400, 600, 800, 1000, 1300, 1600].find(x => x >= width) || 1600);
+  return page.service ? `${page.service}/full/${w},/0/default.jpg` : page.full;
+}

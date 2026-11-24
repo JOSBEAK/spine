@@ -55,3 +55,9 @@ export async function fetchJSON(url, { timeout = 20000 } = {}) {
     return await r.json();
   } finally { clearTimeout(t); }
 }
+
+/** Fade an element out and remove it, even if animations are paused (background tabs). */
+export function fadeOut(el, ms = 220, frames = [{ opacity: 1 }, { opacity: 0 }]) {
+  try { el.animate(frames, { duration: ms, easing: 'ease-in', fill: 'forwards' }); } catch { /* no WAAPI */ }
+  setTimeout(() => el.remove(), ms + 30);
+}

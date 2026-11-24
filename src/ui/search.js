@@ -48,7 +48,7 @@ export function installSearch() {
     }
     if (e.key === 'Enter') {
       if (items[sel]) items[sel].click();
-      else if (q.value.trim()) location.hash = `#/discover?q=${encodeURIComponent(q.value.trim())}&mode=all&sort=relevance`;
+      else if (q.value.trim()) store.track('search', null, { q: q.value.trim() }), location.hash = `#/discover?q=${encodeURIComponent(q.value.trim())}&mode=all&sort=relevance`;
       close(); q.blur();
     }
     if (e.key === 'Escape') { close(); q.blur(); }
