@@ -71,7 +71,9 @@ Then build the web app with `VITE_API_URL=http://localhost:8787` (or set it in `
 npm run build   # static site in dist/
 ```
 
-Pushing to `main` deploys the web app to GitHub Pages through `.github/workflows/deploy.yml`. Set the repository variable `VITE_API_URL` to your deployed server's URL to switch accounts on there.
+Pushing to `main` deploys the web app to GitHub Pages through `.github/workflows/deploy.yml`. The repository variable `VITE_API_URL` points the live site at the server.
+
+**Live:** web app at https://josbeak.github.io/spine/, API at https://spine-api-iota.vercel.app (Vercel project `spine-api`, Neon Postgres `spine-db`, region iad1). Deploy the API with `cd server && vercel deploy --prod`.
 
 ## How it's built
 
