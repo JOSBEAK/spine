@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const SERVER_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const DEFAULT_ORIGINS = 'https://josbeak.github.io,http://localhost:5178,http://localhost:5173';
+const DEFAULT_ORIGINS = 'https://spinebrew.com,https://www.spinebrew.com,https://josbeak.github.io,http://localhost:5178,http://localhost:5173';
 const truthy = (v) => /^(1|true|yes|on)$/i.test(String(v || ''));
 
 export function loadConfig(env = process.env) {
@@ -17,7 +17,7 @@ export function loadConfig(env = process.env) {
     port: Number(env.PORT || 8787),
     // CSV imports stop starting new Open Library lookups after this long (keep below the platform timeout).
     importBudgetMs: Number(env.IMPORT_BUDGET_MS || 240000),
-    userAgent: 'Spine/1.0 (+https://josbeak.github.io/spine/)',
+    userAgent: 'Spine/1.0 (+https://spinebrew.com)',
     onVercel: Boolean(env.VERCEL),
   };
 }

@@ -151,7 +151,7 @@ test('recommendations: rows from taste, library excluded, cached for 12 hours', 
 
   // Every request carried the Spine User-Agent.
   assert.ok(h.fetched.length > 0);
-  for (const f of h.fetched) assert.match(f.headers['User-Agent'], /^Spine\/1\.0 \(\+https:\/\/josbeak\.github\.io\/spine\/\)$/);
+  for (const f of h.fetched) assert.match(f.headers['User-Agent'], /^Spine\/1\.0 \(\+https:\/\/spinebrew\.com\)$/);
 
   // Cached: no new fetches within 12 h, fresh fetches after.
   const n = h.fetched.length;

@@ -26,7 +26,8 @@ jobs:
       - run: npm ci
       - run: npm run build
         env:
-          SPINE_BASE: /${{ github.event.repository.name }}/
+          # '/' once the site has its own domain (repo variable SPINE_BASE), else /<repo>/ on github.io
+          SPINE_BASE: ${{ vars.SPINE_BASE || format('/{0}/', github.event.repository.name) }}
           VITE_API_URL: ${{ vars.VITE_API_URL }}
       - uses: actions/upload-pages-artifact@v3
         with:
