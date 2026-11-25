@@ -61,6 +61,7 @@ export async function setup() {
   };
 
   h.sync = (token, body) => h.api('POST', '/sync', { token, body });
+  h.db = db;
   h.close = () => db.close();
   return h;
 }

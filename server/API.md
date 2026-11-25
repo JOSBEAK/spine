@@ -154,3 +154,18 @@ stored once in `monthly_readers` (pruned after 13 months); `book_month_counts` k
 | GET | `/stats/books/:id` | → `{ id, month, all_time, period }`. Cached 60 s. |
 
 Deleting an account deletes its `monthly_readers` rows; the totals stay.
+
+## Footfall (private)
+
+`POST /visits` — the site sends one each time it is opened (a page load, not every click).
+Body: `{ "visitor": "<browser's random uuid>", "first": true, "landing": "#/book/OL1W", "referrer": "https://t.co/…", "source": "x" }`.
+Signed-in requests are tied to the account. Stored: time, visitor id, account (if any), first visit, the screen it opened on,
+the referring host, `utm_source`/`ref`, a country code from Vercel's `x-vercel-ip-country` header, and phone/tablet/desktop.
+No IP addresses or user agents are kept. 240 opens per IP per hour; rows older than 400 days are pruned. Answers `204`.
+
+Nothing reads these numbers back over HTTP. The owner runs the report against the production database:
+
+```bash
+cd server && vercel env pull .env && npm run footfall        # last 30 days
+npm run footfall -- 7                                       # last 7 days
+```

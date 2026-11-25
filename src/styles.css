@@ -852,3 +852,19 @@ section[data-slot]+section[data-slot]{margin-top:30px}
 @keyframes wobble{from{transform:rotate(-1.2deg)}to{transform:rotate(1.2deg)}}
 @media (max-width:760px){.lib-tools{margin:22px 16px 0;flex-wrap:wrap}}
 @media (prefers-reduced-motion:reduce){.bookcase3d.tidying .vol[data-lib]{animation:none}}
+
+/* ---------- create-account invitation ---------- */
+.nudge{position:fixed;right:24px;bottom:calc(24px + env(safe-area-inset-bottom,0px));z-index:65;width:min(400px,calc(100vw - 32px));display:flex;gap:14px;background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:18px 18px 16px;box-shadow:0 24px 60px rgba(20,22,27,.16),0 2px 6px rgba(20,22,27,.06);animation:up .45s var(--ease-out)}
+.nudge h2{font-family:var(--f-display);font-weight:400;font-size:21px;line-height:1.15;margin:2px 28px 6px 0}
+.nudge p{font-size:14px;color:var(--ink-2);line-height:1.5}
+.nudge-ico{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:#e6f7ef;color:#1f9e6e}
+.nudge-ico svg{width:20px;height:20px}
+.nudge-btns{display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap}
+.nudge-x{position:absolute;right:10px;top:10px;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:var(--ink-3)}
+.nudge-x:hover{background:var(--wash);color:var(--ink)}
+.nudge-x svg{width:16px;height:16px}
+@media (max-width:640px){.nudge{right:16px;left:16px;width:auto;bottom:calc(84px + env(safe-area-inset-bottom,0px))}}
+.save-hint{display:inline-flex;align-items:center;gap:8px;margin-top:14px;font-size:13px;color:var(--ink-2);text-align:left}
+.save-hint svg{width:15px;height:15px;flex:none;color:#1f9e6e}
+.save-hint u{text-decoration-color:rgba(31,158,110,.5);text-underline-offset:3px}
+.save-hint:hover u{color:var(--ink);text-decoration-color:currentColor}

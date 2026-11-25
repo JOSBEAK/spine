@@ -7,6 +7,7 @@ import { fromServerBook } from './recs.js';
 
 const KEY = 'spine.v1.reads';
 const DEVICE = 'spine.v1.reader';
+const SEEN = 'spine.v1.seen';
 const month = () => new Date().toISOString().slice(0, 7); // UTC, like the server
 
 function load() {
@@ -44,6 +45,29 @@ export function countRead(b) {
     })
     .catch(() => { /* try again next time it's opened */ })
     .finally(() => pending.delete(b.id));
+}
+
+/* ---------- footfall ---------- */
+
+// Once per page load Spine tells its server it was opened: this browser's random id, whether it
+// is the first time, the screen it opened on, and the site that linked here. Only the owner sees
+// these numbers; nothing about them is shown on the site.
+let visited = false;
+export function logVisit() {
+  if (visited || !accountsEnabled()) return;
+  visited = true;
+  const visitor = readerId();
+  if (!visitor) return;
+  let first = false;
+  try { first = !localStorage.getItem(SEEN); if (first) localStorage.setItem(SEEN, new Date().toISOString()); } catch { /* private mode */ }
+  const qs = new URLSearchParams(location.search);
+  const body = {
+    visitor, first,
+    landing: location.hash.slice(0, 40),
+    referrer: document.referrer ? document.referrer.slice(0, 200) : null,
+    source: (qs.get('utm_source') || qs.get('ref') || '').slice(0, 60) || null,
+  };
+  api('/visits', { method: 'POST', body, timeout: 10000 }).catch(() => { /* not worth retrying */ });
 }
 
 /* ---------- reading the numbers back ---------- */

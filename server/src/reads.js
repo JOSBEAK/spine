@@ -26,17 +26,17 @@ const ReadBody = z.object({
   reader: z.uuid({ error: 'reader must be the random id this browser made (a UUID)' }).optional(),
 });
 
-/** Counts IP hits in login_attempts (key "reads|<ip>"); true while under the hourly limit. */
-async function underLimit(q, ip, now) {
+/** Counts hits in login_attempts under `key`; true while under `limit` per hour. */
+export async function underHourlyLimit(q, key, limit, now) {
   const { rows } = await q.query(
     `INSERT INTO login_attempts (key, failures, window_start) VALUES ($1, 1, $2)
      ON CONFLICT (key) DO UPDATE SET
        failures     = CASE WHEN login_attempts.window_start < $3 THEN 1 ELSE login_attempts.failures + 1 END,
        window_start = CASE WHEN login_attempts.window_start < $3 THEN $2::timestamptz ELSE login_attempts.window_start END
      RETURNING failures`,
-    [`reads|${ip}`, now.toISOString(), new Date(+now - HOUR_MS).toISOString()],
+    [key, now.toISOString(), new Date(+now - HOUR_MS).toISOString()],
   );
-  return rows[0].failures <= IP_LIMIT;
+  return rows[0].failures <= limit;
 }
 
 /** Fills in title and author from Open Library for works only known by id (opens from people without accounts). */
@@ -61,7 +61,7 @@ export function readRoutes(app, ctx) {
     const now = ctx.now();
     const month = monthOf(now);
     const counted = await ctx.db.tx(async (q) => {
-      if (!(await underLimit(q, clientIp(c, ctx.config.trustProxy), now))) return false;
+      if (!(await underHourlyLimit(q, `reads|${clientIp(c, ctx.config.trustProxy)}`, IP_LIMIT, now))) return false;
       // Signed-in readers can describe a book, as sync lets them. Anyone else only names it:
       // the title shown in public lists comes from Open Library, not from an anonymous request.
       if (user) await upsertBooks(q, [body.book], now);

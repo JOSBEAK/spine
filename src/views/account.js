@@ -72,10 +72,10 @@ export function account() {
     <div class="acct">
       ${!user ? (enabled ? authHTML() : '<div class="auth-card"><p class="muted">Accounts aren\'t switched on for this copy of Spine yet. Everything you do is saved in this browser.</p></div>') : ''}
       <section class="acct-sec"><h2>${I.spark} Your taste</h2><p class="muted">Built from what you open, read, shelve and highlight. Recent reading counts more.</p><div data-taste>${tasteHTML(store.interests(12))}</div></section>
-      <section class="acct-sec"><h2>${I.clock} Reading history</h2><div data-history>${historyHTML(store.history())}</div></section>
+      <section class="acct-sec"><h2>${I.clock} Reading history</h2>${!user && enabled && store.history().length ? '<p class="muted">This history is saved in this browser only. Create a free account above to keep it on every device.</p>' : ''}<div data-history>${historyHTML(store.history())}</div></section>
       <section class="acct-sec"><h2>${I.link} Connected reading accounts</h2>${linksHTML(acc?.linked || [], !!user)}</section>
       <section class="acct-sec"><h2>Your data</h2>
-        ${enabled ? '<p class="muted">To show how many people read each book, Spine notes the first time you open a book each month: just the book, the month, and your account or a random number this browser keeps. Deleting your account removes your part of it.</p>' : ''}
+        ${enabled ? '<p class="muted">To show how many people read each book, Spine notes the first time you open a book each month: just the book, the month, and your account or a random number this browser keeps. Spine also counts each time the site is opened (with the same random number, the site that linked here, and whether it was a phone or a computer) so we know how many people use it. Deleting your account removes your part of it.</p>' : ''}
         <div class="btns"><button class="btn btn-line" data-export>${I.down} Download my data</button>${user ? '<button class="btn btn-line" data-signout>Sign out</button><button class="btn btn-line danger" data-delete>Delete account</button>' : ''}</div>
         <p class="muted">${user ? 'Spine stores your account, shelf, progress, highlights, bookmarks, reading sittings and a taste profile. Passwords are hashed; we never store passwords for other services.' : 'Saved in this browser only. Clearing your browser data removes it.'}</p>
       </section>
@@ -96,6 +96,7 @@ export function account() {
           $('button[type=submit]', form).textContent = mode === 'up' ? 'Create account' : 'Sign in';
           $('#a-pass', form).autocomplete = mode === 'up' ? 'new-password' : 'current-password';
         });
+        try { if (sessionStorage.getItem('spine.signup')) { sessionStorage.removeItem('spine.signup'); $('[data-mode="up"]', root)?.click(); requestAnimationFrame(() => { form.scrollIntoView({ block: 'center', behavior: 'smooth' }); $('input', form)?.focus({ preventScroll: true }); }); } } catch { /* ignore */ }
         $('.show', form).onclick = e => { const i = $('#a-pass', form); i.type = i.type === 'password' ? 'text' : 'password'; e.currentTarget.textContent = i.type === 'password' ? 'Show' : 'Hide'; };
         form.onsubmit = async e => {
           e.preventDefault();

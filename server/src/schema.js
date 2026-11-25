@@ -176,6 +176,30 @@ CREATE INDEX IF NOT EXISTS book_month_counts_top_idx ON book_month_counts (month
 CREATE INDEX IF NOT EXISTS book_month_counts_book_idx ON book_month_counts (book_id);
 `,
   },
+  {
+    version: 3,
+    sql: `
+-- Footfall: one row each time someone opens the site (a page load, not every click inside it).
+-- Private to the owner (see scripts/footfall.js); nothing here is shown on the site. A visitor is
+-- the random id the browser already keeps for read counts. No IP addresses or full user agents
+-- are stored: only the referring site, a country code from the host, and phone/tablet/desktop.
+-- Rows older than 400 days are pruned.
+CREATE TABLE IF NOT EXISTS visits (
+  id          bigserial PRIMARY KEY,
+  at          timestamptz NOT NULL,
+  visitor     uuid NOT NULL,
+  user_id     uuid REFERENCES users(id) ON DELETE CASCADE,
+  first_visit boolean NOT NULL DEFAULT false,
+  landing     text,          -- the screen it opened on: home, book, read, library...
+  referrer    text,          -- host of the referring site, e.g. t.co
+  source      text,          -- utm_source / ref from the link, if any
+  country     text,          -- two-letter code from the hosting platform, if known
+  device      text           -- phone, tablet or desktop
+);
+CREATE INDEX IF NOT EXISTS visits_at_idx ON visits (at);
+CREATE INDEX IF NOT EXISTS visits_visitor_idx ON visits (visitor, at);
+`,
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

@@ -7,6 +7,7 @@ import { bookHTML, applyTone } from '../ui/book.js';
 import { rowHTML, wireRows } from '../ui/rows.js';
 import { I } from '../ui/icons.js';
 import { fillTop10 } from '../ui/top10.js';
+import { saveHintHTML } from '../ui/nudge.js';
 
 const nf = s => `(${s.map(x => `subject:"${x}"`).join(' OR ')}) -subject:fiction`;
 
@@ -76,6 +77,7 @@ function heroHTML() {
         ${b.lv || b.audio ? `<button class="btn btn-line" data-listen="${b.id}">${I.ear} Listen instead</button>` : `<a class="btn btn-line" href="#/book/${b.id}">About this book</a>`}
         ${p ? `<button class="btn-quiet" data-remove-recent="${b.id}">${I.x} Remove from Continue reading</button>` : ''}
       </div>
+      ${p ? saveHintHTML() : ''}
     </div>
     <div class="nightstand">${side}</div>
   </section>`;

@@ -10,7 +10,8 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "footfall": "node scripts/footfall.js"
   },
   "dependencies": {
     "@electric-sql/pglite": "0.5.11",

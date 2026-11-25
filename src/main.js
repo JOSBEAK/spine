@@ -4,7 +4,7 @@ import { store } from './lib/store.js';
 import { known, getBook } from './lib/openlibrary.js';
 import { accountsEnabled } from './lib/api.js';
 import { startSync } from './lib/sync.js';
-import { countRead } from './lib/reads.js';
+import { countRead, logVisit } from './lib/reads.js';
 import { installTilt } from './ui/book.js';
 import { installSearch } from './ui/search.js';
 import { flyToDetail, openBookAnimation, isBusy } from './ui/motion.js';
@@ -12,6 +12,7 @@ import { openReader, closeReader, readerOpen, readerKey } from './ui/reader.js';
 import { openPanel, closePanel, panelOpen } from './ui/panel.js';
 import { listen } from './ui/player.js';
 import { toast } from './ui/toast.js';
+import { installNudge, goSignup } from './ui/nudge.js';
 import { home } from './views/home.js';
 import { discover } from './views/discover.js';
 import { library } from './views/library.js';
@@ -189,9 +190,11 @@ store.on(what => { if (what === 'account') paintAccount(); });
 
 installTilt();
 installSearch();
+installNudge(readerOpen);
+document.addEventListener('click', e => { if (e.target.closest('[data-signup]')) { e.preventDefault(); goSignup(); } });
 paintAccount();
 render();
-if (accountsEnabled()) { startSync(); loadLinks(); }
+if (accountsEnabled()) { startSync(); loadLinks(); setTimeout(logVisit, 800); }
 
 // Bring back the audiobook you were listening to, paused where you left it.
 const au = store.audio;
