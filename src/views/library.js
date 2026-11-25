@@ -33,7 +33,7 @@ function vol(b) {
   const reading = p && !store.finished(b.id);
   const surname = (b.author || '').split(/[ ,]+/).filter(Boolean).pop() || '';
   const mine = store.inLibrary(b.id);
-  return `<a class="vol ${isLight(tone) ? 'light' : ''}" href="#/book/${b.id}" data-id="${b.id}"${mine ? ' data-lib' : ''}
+  return `<a class="vol ${isLight(tone) ? 'light' : ''}" href="/book/${b.id}" data-id="${b.id}"${mine ? ' data-lib' : ''}
       data-tip="${esc(b.title)}" data-by="${esc(b.author || '')}" data-st="${status(b)}"
       style="--tone:${tone};--w:${w}px;--h:${h}px;--d:${d}px" aria-label="${esc(b.title)}, ${esc(b.author || '')}. ${status(b)}">
     <span class="vol-box">

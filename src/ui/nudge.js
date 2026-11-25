@@ -5,11 +5,13 @@ import { store } from '../lib/store.js';
 import { accountsEnabled } from '../lib/api.js';
 import { fadeOut } from '../lib/util.js';
 import { I } from './icons.js';
+import { here, go } from '../lib/router.js';
 
 /** Opens the account page with "Create account" (or "Sign in") chosen. */
 export function goSignup(mode = 'up') {
+  if (here() === '/account') { document.querySelector(`[data-mode="${mode === 'in' ? 'in' : 'up'}"]`)?.click(); return; }
   try { sessionStorage.setItem('spine.signup', mode); } catch { /* ignore */ }
-  if (location.hash === '#/account') dispatchEvent(new HashChangeEvent('hashchange')); else location.hash = '#/account';
+  go('/account');
 }
 
 const signedOut = () => accountsEnabled() && !store.account?.user;
@@ -62,7 +64,7 @@ function showWelcome() {
  */
 export function installWelcome(readerOpen) {
   if (!signedOut()) return;
-  const busy = () => readerOpen() || /^#\/(account|read|scan|listen)\b/.test(location.hash);
+  const busy = () => readerOpen() || /^\/(account|read|scan|listen)\b/.test(here());
   const attempt = () => {
     if (busy()) return false;
     showWelcome();
@@ -70,8 +72,8 @@ export function installWelcome(readerOpen) {
   };
   setTimeout(() => {
     if (attempt()) return;
-    const onHash = () => setTimeout(() => { if (attempt()) removeEventListener('hashchange', onHash); }, 700);
-    addEventListener('hashchange', onHash);
+    const onHash = () => setTimeout(() => { if (attempt()) removeEventListener('spine:route', onHash); }, 700);
+    addEventListener('spine:route', onHash);
   }, 1200);
   store.on(what => { if (what === 'account' && store.account?.user) document.querySelector('.welcome')?.remove(); });
 }

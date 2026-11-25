@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 
-// Served from https://<user>.github.io/spine/ on GitHub Pages.
+// Served from the root of https://spinebrew.com (GitHub Pages, custom domain). Routes are real paths, so the base must be '/'.
 export default defineConfig({
-  base: process.env.SPINE_BASE ?? '/spine/',
+  base: process.env.SPINE_BASE ?? '/',
   build: { target: 'es2020' },
 });

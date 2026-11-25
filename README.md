@@ -77,7 +77,7 @@ Pushing to `main` deploys the web app to GitHub Pages through `.github/workflows
 
 ## How it's built
 
-Plain JavaScript modules and CSS, bundled with Vite. There's no framework and no backend.
+Plain JavaScript modules and CSS, bundled with Vite. There's no framework. The optional API in `server/` handles accounts, sync and footfall.
 
 - `src/lib/openlibrary.js`: search and book records from Open Library
 - `src/lib/archive.js`: finds the Gutenberg text, LibriVox recording, scan and EPUB for a book on the Internet Archive
@@ -94,6 +94,18 @@ Plain JavaScript modules and CSS, bundled with Vite. There's no framework and no
 - `src/lib/shelves.js`: the Open Library subject queries behind every shelf
 - `src/data/seed.json`: 71 hand-picked classics with their sources resolved ahead of time, so Home loads instantly
 - `src/data/textbooks.json`: the OpenStax catalogue, refreshed with `python3 scripts/build-textbooks.py`
+- `src/lib/router.js`: real paths (`/book/OL66554W`, `/discover?q=…`) with `history.pushState`; old `#/…` links are upgraded on load
+
+### Search engines
+
+GitHub Pages only serves files, so `npm run build` runs `scripts/prerender.mjs` after Vite. It writes:
+
+- `dist/book/<id>.html` for every book in `seo/catalog.json` (about 7,800 classics with clean Gutenberg text), the hand-picked seed and the textbooks. Each page has its own title, description, canonical URL, social card, schema.org `Book` data and a plain HTML summary that the app replaces when it starts. Pages serves `/book/<id>` from that file with a 200.
+- `discover.html`, `sources.html`, `library.html` and `account.html`. The last two are `noindex`.
+- `404.html`: any other path, such as `/read/<id>` or a book outside the catalogue. The app still runs there, but the page answers 404 and is `noindex`.
+- `robots.txt` and `sitemap.xml`.
+
+Refresh the catalogue now and then with `node scripts/build-catalog.mjs`, then commit `seo/catalog.json`. Deploys never call Open Library.
 
 ## Notes
 

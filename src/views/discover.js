@@ -34,7 +34,7 @@ export function discover(params) {
   const link = patch => {
     const p = new URLSearchParams({ q: f.q, shelf: f.shelf, subject: f.subject, label: f.label, mode: f.mode, era: f.era, sort: f.sort, english: f.english ? 'yes' : 'no', ...patch });
     [...p].forEach(([k, v]) => { if (!v) p.delete(k); });
-    return '#/discover?' + p;
+    return '/discover?' + p;
   };
   const chip = (on, label, patch) => `<a class="chip" role="button" href="${link(patch)}" aria-pressed="${on}">${esc(label)}</a>`;
   const shelfChip = s => chip(f.shelf === s.key, s.label, { shelf: f.shelf === s.key ? '' : s.key, subject: '', label: '' });
@@ -104,7 +104,7 @@ export function discover(params) {
         } catch {
           count.textContent = '';
           clearSkel();
-          if (page === 1) grid.innerHTML = `<p class="none">Open Library didn't answer. Check your connection and <a href="${location.hash}" onclick="location.reload()">try again</a>.</p>`;
+          if (page === 1) grid.innerHTML = `<p class="none">Open Library didn't answer. Check your connection and <a href="${location.pathname + location.search}" onclick="location.reload()">try again</a>.</p>`;
           else more.textContent = "Couldn't load more right now.";
         } finally {
           loading = false;

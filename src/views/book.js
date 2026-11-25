@@ -1,5 +1,6 @@
 import { $, $$, esc, readingTime } from '../lib/util.js';
 import { store } from '../lib/store.js';
+import { go } from '../lib/router.js';
 import { getBook, getDescription, search, searchTextbooks, coverURL, borrowURL } from '../lib/openlibrary.js';
 import { findText, findAudio, epubFor, loadText } from '../lib/archive.js';
 import { bookHTML, applyTone, isBorrow, isTextbook } from '../ui/book.js';
@@ -100,7 +101,7 @@ export function bookPage(b) {
   const ext = tb ? b.web : borrow ? borrowURL(b) : null;
   const primary = `<button class="btn btn-ink" data-primary>${p && !tb && !borrow ? `Keep reading · ${Math.round(p.pct * 100)}%` : borrow ? 'Read here' : 'Start reading'} ${I.arrowR}</button>`
     + (ext ? `<a class="btn btn-line" href="${ext}" target="_blank" rel="noopener">Open in browser ${I.ext}</a>` : '');
-  const authorLink = tb ? esc(b.author) : `<a href="#/discover?q=${encodeURIComponent(b.author)}&mode=all&sort=relevance">${esc(b.author)}</a>`;
+  const authorLink = tb ? esc(b.author) : `<a href="/discover?q=${encodeURIComponent(b.author)}&mode=all&sort=relevance">${esc(b.author)}</a>`;
   const ambient = b.cover ? `background-image:url(${coverURL(b, 'M')})` : `background:${b.tone}`;
   const initial = tb ? textbookWays(b) : ways(b, store.found(b.id) && 'gut' in store.found(b.id) ? { gut: store.found(b.id).gut } : (b.gut ? { gut: b.gut } : {}));
   const html = `<section class="detail">
@@ -123,11 +124,11 @@ export function bookPage(b) {
           <h2>Ways to read</h2>
           <p class="ways-n">${tb ? 'Free and openly licensed, from OpenStax at Rice University' : 'Checking free libraries…'}</p>
           <ul class="streams">${initial.list}</ul>
-          ${borrow ? `<p class="note">Borrowing works like a public library: one reader at a time per copy, so popular books can have a waitlist. ${store.sources.lending === false ? 'Lending is turned off in <a href="#/sources">Sources</a>.' : ''}</p>` : ''}
-          ${tb && store.sources.openstax === false ? '<p class="note">OpenStax is turned off in <a href="#/sources">Sources</a>.</p>' : ''}
+          ${borrow ? `<p class="note">Borrowing works like a public library: one reader at a time per copy, so popular books can have a waitlist. ${store.sources.lending === false ? 'Lending is turned off in <a href="/sources">Sources</a>.' : ''}</p>` : ''}
+          ${tb && store.sources.openstax === false ? '<p class="note">OpenStax is turned off in <a href="/sources">Sources</a>.</p>' : ''}
         </div>
         <div class="activity ways" data-activity></div>
-        ${!tb && b.subjects?.length ? `<div class="subjects">${b.subjects.map(s => `<a href="#/discover?subject=${encodeURIComponent(s)}&label=${encodeURIComponent(s)}&mode=all">${esc(s)}</a>`).join('')}</div>` : ''}
+        ${!tb && b.subjects?.length ? `<div class="subjects">${b.subjects.map(s => `<a href="/discover?subject=${encodeURIComponent(s)}&label=${encodeURIComponent(s)}&mode=all">${esc(s)}</a>`).join('')}</div>` : ''}
       </div>
     </div>
     ${moreLike(b)}
@@ -153,7 +154,7 @@ export function bookPage(b) {
         const onRead = e => { if (!rf.isConnected) return removeEventListener('spine:read', onRead); if (e.detail === b.id) showReaders(); };
         addEventListener('spine:read', onRead);
       }
-      $('[data-back]', root).onclick = () => (history.length > 1 ? history.back() : (location.hash = '#/'));
+      $('[data-back]', root).onclick = () => (history.length > 1 ? history.back() : go('/'));
       const sb = $('[data-shelf]', root);
       sb.onclick = () => {
         const on = store.toggleShelf(b);

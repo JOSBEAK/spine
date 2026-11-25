@@ -31,7 +31,7 @@ const DECADES = Array.from({ length: 22 }, (_, i) => 1800 + i * 10);
 // A live shelf: Open Library books on a subject, read-now and borrowable, most read first.
 const live = key => {
   const sh = shelfByKey(key);
-  return rowHTML({ title: sh.title, sub: sh.sub, all: `#/discover?shelf=${key}`, load: page => search({ subject: sh.q, page, limit: 24 }).then(x => x.books) });
+  return rowHTML({ title: sh.title, sub: sh.sub, all: `/discover?shelf=${key}`, load: page => search({ subject: sh.q, page, limit: 24 }).then(x => x.books) });
 };
 
 // Lead with the subjects people look for most; leave out the Spanish editions on Home.
@@ -58,7 +58,7 @@ function heroHTML() {
   const pct = p ? Math.round(p.pct * 100) : null;
   const others = reading.slice(1, 3);
   const side = others.length
-    ? `<h3>Also on your nightstand</h3>${others.map(o => `<a class="mini" href="#/book/${o.id}">${o.cover ? `<img src="${coverURL(o, 'S')}" alt="">` : ''}<div><b>${esc(o.title)}</b><span>${esc(o.author)}</span><div class="meter"><i style="width:${Math.round((store.progress(o.id)?.pct || 0) * 100)}%"></i></div></div><button class="mini-x" data-remove-recent="${o.id}" aria-label="Remove ${esc(o.title)} from Continue reading" title="Remove from Continue reading">${I.x}</button></a>`).join('')}`
+    ? `<h3>Also on your nightstand</h3>${others.map(o => `<a class="mini" href="/book/${o.id}">${o.cover ? `<img src="${coverURL(o, 'S')}" alt="">` : ''}<div><b>${esc(o.title)}</b><span>${esc(o.author)}</span><div class="meter"><i style="width:${Math.round((store.progress(o.id)?.pct || 0) * 100)}%"></i></div></div><button class="mini-x" data-remove-recent="${o.id}" aria-label="Remove ${esc(o.title)} from Continue reading" title="Remove from Continue reading">${I.x}</button></a>`).join('')}`
     : `<h3>Three ways to read</h3>
        <div class="mini"><span class="how">${I.book}</span><div><b>Read here</b><span>Clean text or the original printed pages</span></div></div>
        <div class="mini"><span class="how">${I.scan}</span><div><b>Borrow free</b><span>Modern books from a free lending library</span></div></div>
@@ -74,7 +74,7 @@ function heroHTML() {
       ${p ? `<div class="progress"><div class="bar"><i style="width:${pct}%"></i></div><span>${pct}% read</span></div>` : ''}
       <div class="btns">
         <button class="btn btn-ink" data-read="${b.id}">${p ? 'Keep reading' : 'Start reading'} ${I.arrowR}</button>
-        ${b.lv || b.audio ? `<button class="btn btn-line" data-listen="${b.id}">${I.ear} Listen instead</button>` : `<a class="btn btn-line" href="#/book/${b.id}">About this book</a>`}
+        ${b.lv || b.audio ? `<button class="btn btn-line" data-listen="${b.id}">${I.ear} Listen instead</button>` : `<a class="btn btn-line" href="/book/${b.id}">About this book</a>`}
         ${p ? `<button class="btn-quiet" data-remove-recent="${b.id}">${I.x} Remove from Continue reading</button>` : ''}
       </div>
       ${p ? saveHintHTML() : ''}
@@ -92,7 +92,7 @@ function* endless() {
     ...authors.slice(2).map(a => ({ title: `More by ${a.name}`, author: a.name })),
   ];
   const rest = [
-    ...['young', 'philosophy', 'poetry', 'funny', 'short', 'travel', 'plays', 'fairy'].map(k => shelfByKey(k)).map(s => ({ title: s.title, q: s.q, all: `#/discover?shelf=${s.key}` })),
+    ...['young', 'philosophy', 'poetry', 'funny', 'short', 'travel', 'plays', 'fairy'].map(k => shelfByKey(k)).map(s => ({ title: s.title, q: s.q, all: `/discover?shelf=${s.key}` })),
     ...MORE.map(([title, q]) => ({ title, q })),
   ];
   const decades = DECADES.map(d => ({ title: `Written in the ${d}s`, sub: d < 1930 ? 'Free to read here' : 'Most of these are to borrow', era: [d, d + 9] }));
@@ -136,7 +136,7 @@ export function home() {
     ${rowHTML({ title: 'Free since 2021', sub: 'Recently out of copyright in the US', books: pick(['The Great Gatsby', 'Mrs Dalloway', 'The Murder of Roger Ackroyd', 'Winnie-the-Pooh', 'The Prophet', 'Siddhartha', 'The Waste Land', 'The Secret Adversary', 'Ulysses']) })}
     ${live('programming')}
     ${live('science')}
-    ${store.sources.openstax !== false ? rowHTML({ title: 'Free university textbooks', sub: 'Complete and peer-reviewed, from OpenStax', books: textbookShelf(), all: '#/discover?shelf=textbooks' }) : ''}
+    ${store.sources.openstax !== false ? rowHTML({ title: 'Free university textbooks', sub: 'Complete and peer-reviewed, from OpenStax', books: textbookShelf(), all: '/discover?shelf=textbooks' }) : ''}
     ${rowHTML({ title: 'Short enough for tonight', sub: 'Under 150 pages', books: seed.filter(b => b.pages < 150).sort((a, b) => a.pages - b.pages) })}
     ${rowHTML({ title: 'Listen while you walk', sub: 'Free audiobooks read by LibriVox volunteers', books: seed.filter(b => b.lv).slice(14, 34) })}
     ${['detective', 'engineering', 'horror', 'maths', 'scifi', 'lives', 'love', 'food', 'sea', 'health', 'adventure', 'history'].map(live).join('')}

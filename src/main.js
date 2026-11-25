@@ -13,6 +13,7 @@ import { openPanel, closePanel, panelOpen } from './ui/panel.js';
 import { listen } from './ui/player.js';
 import { toast } from './ui/toast.js';
 import { installWelcome, goSignup } from './ui/nudge.js';
+import { here, go, upgradeHashLink, installLinks } from './lib/router.js';
 import { home } from './views/home.js';
 import { discover } from './views/discover.js';
 import { library } from './views/library.js';
@@ -26,13 +27,13 @@ let pushedOverlay = false;
 const OVERLAYS = ['read', 'scan', 'borrow', 'textbook'];
 
 function parse() {
-  const h = location.hash.replace(/^#\/?/, '');
-  const [path, qs = ''] = h.split('?');
+  const path = here().replace(/^\//, '');
+  const qs = location.search.replace(/^\?/, '');
   const [name = '', id = ''] = path.split('/');
   return { name: name || 'home', id: decodeURIComponent(id), params: new URLSearchParams(qs), key: `${path}?${qs}` };
 }
 
-function goOverlay(kind, b) { pushedOverlay = true; location.hash = `#/${kind}/${encodeURIComponent(b.id)}`; }
+function goOverlay(kind, b) { pushedOverlay = true; history.pushState(null, '', `/${kind}/${encodeURIComponent(b.id)}`); }
 
 const actions = {
   // clean text, with the book-opening animation
@@ -58,9 +59,9 @@ const actions = {
 };
 
 function leaveOverlay(b) {
-  if (!new RegExp(`^#/(${OVERLAYS.join('|')})/`).test(location.hash)) return;
+  if (!new RegExp(`^/(${OVERLAYS.join('|')})/`).test(here())) return;
   if (pushedOverlay) { pushedOverlay = false; history.back(); }
-  else location.replace(`#/book/${encodeURIComponent(b.id)}`);
+  else go(`/book/${encodeURIComponent(b.id)}`, { replace: true });
 }
 
 function showOverlay(kind, b, fromOpen = false) {
@@ -98,7 +99,7 @@ async function renderBase(r) {
         mount(v, known.get(r.id)?.title);
       } catch {
         if (current !== r.key) return;
-        view.innerHTML = '<p class="none pad">This book could not be found. It may have been merged into another record on Open Library. <a href="#/">Back to Home</a></p>';
+        view.innerHTML = '<p class="none pad">This book could not be found. It may have been merged into another record on Open Library. <a href="/">Back to Home</a></p>';
       }
     }
   }
@@ -119,16 +120,16 @@ async function render() {
   if (overlay) {
     if (current === null) await renderBase({ ...r, key: `book/${r.id}?` });
     let b = known.get(r.id) || store.book(r.id);
-    if (!b) { try { b = await getBook(r.id); } catch { toast('That book could not be found.'); location.replace('#/'); return; } }
+    if (!b) { try { b = await getBook(r.id); } catch { toast('That book could not be found.'); go('/', { replace: true }); return; } }
     if (['read', 'scan'].includes(r.name) && !readerOpen()) {
-      if (r.name === 'scan' && !b.scan) { toast('There is no public scan of this book.'); location.replace(`#/book/${b.id}`); return; }
+      if (r.name === 'scan' && !b.scan) { toast('There is no public scan of this book.'); go(`/book/${b.id}`, { replace: true }); return; }
       showOverlay(r.name, b);
     }
     if (['borrow', 'textbook'].includes(r.name) && !panelOpen()) showOverlay(r.name, b);
   }
 }
 
-addEventListener('hashchange', () => { if (!isBusy()) render(); });
+addEventListener('spine:route', () => { if (!isBusy()) render(); });
 
 // Remove a book from Continue reading or from the library. Runs before the other click handlers, so
 // the button inside a book card doesn't also open the book. Undo puts everything back.
@@ -157,7 +158,7 @@ document.addEventListener('click', e => {
   e.preventDefault();
   if (isBusy()) return;
   const id = a.dataset.id;
-  flyToDetail(a, () => { history.pushState(null, '', `#/book/${id}`); renderBase(parse()); });
+  flyToDetail(a, () => { history.pushState(null, '', `/book/${id}`); renderBase(parse()); });
 });
 
 // Buttons outside the book page: hero "Keep reading", "Listen instead".
@@ -188,6 +189,8 @@ function paintAccount() {
 }
 store.on(what => { if (what === 'account') paintAccount(); });
 
+upgradeHashLink();
+installLinks();
 installTilt();
 installSearch();
 installWelcome(readerOpen);

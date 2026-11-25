@@ -95,7 +95,7 @@ async function loadTextBook() {
       ? `<b>No clean text for this one</b><span>Project Gutenberg doesn't have a typeset copy of this book.</span>${scan ? '<button data-scan>Read the original printed pages here</button>' : ''}`
       : '<b>The text didn\'t load</b><span>The Internet Archive didn\'t answer in time. Check your connection and try again.</span><button data-retry>Try again</button>');
     $('[data-retry]', r.el)?.addEventListener('click', () => { status('<div class="lines"></div><b>Trying again</b>'); loadTextBook(); });
-    $('[data-scan]', r.el)?.addEventListener('click', () => { const cb = r.onScan; closeReader(true, true); history.replaceState(null, '', `#/book/${r.b.id}`); cb?.(); });
+    $('[data-scan]', r.el)?.addEventListener('click', () => { const cb = r.onScan; closeReader(true, true); history.replaceState(null, '', `/book/${r.b.id}`); cb?.(); });
   }
 }
 

@@ -1,3 +1,4 @@
+import { go } from '../lib/router.js';
 import { $, $$, esc, debounce } from '../lib/util.js';
 import { search, searchTextbooks, coverURL } from '../lib/openlibrary.js';
 import { store } from '../lib/store.js';
@@ -25,8 +26,8 @@ export function installSearch() {
       const tbs = store.sources.openstax !== false ? searchTextbooks(term).slice(0, 2) : [];
       const all = [...tbs, ...books].slice(0, 8);
       show(all.length
-        ? all.map(b => `<a class="result" role="option" href="#/book/${b.id}">${b.coverArt ? `<img src="${b.coverArt}" alt="" style="background:${b.tone}">` : b.cover ? `<img src="${coverURL(b, 'S')}" alt="">` : `<span style="width:34px;height:50px;border-radius:2px 4px 4px 2px;background:${b.tone};flex:none"></span>`}<div><b>${mark(b.title, term)}</b><span>${mark(b.author, term)}${b.year ? ` · ${esc(b.year)}` : ''}${b.kind === 'textbook' ? ' · Textbook' : b.access === 'borrowable' ? ' · Borrow free' : ''}</span></div></a>`).join('')
-          + (total > books.length ? `<a class="result" role="option" href="#/discover?q=${encodeURIComponent(term)}&mode=all&sort=relevance"><div><b>See all ${total.toLocaleString('en-US')} results</b></div></a>` : '')
+        ? all.map(b => `<a class="result" role="option" href="/book/${b.id}">${b.coverArt ? `<img src="${b.coverArt}" alt="" style="background:${b.tone}">` : b.cover ? `<img src="${coverURL(b, 'S')}" alt="">` : `<span style="width:34px;height:50px;border-radius:2px 4px 4px 2px;background:${b.tone};flex:none"></span>`}<div><b>${mark(b.title, term)}</b><span>${mark(b.author, term)}${b.year ? ` · ${esc(b.year)}` : ''}${b.kind === 'textbook' ? ' · Textbook' : b.access === 'borrowable' ? ' · Borrow free' : ''}</span></div></a>`).join('')
+          + (total > books.length ? `<a class="result" role="option" href="/discover?q=${encodeURIComponent(term)}&mode=all&sort=relevance"><div><b>See all ${total.toLocaleString('en-US')} results</b></div></a>` : '')
         : `<p class="empty">No free books match “${esc(term)}”. Try an author's surname or fewer words.</p>`);
     } catch {
       if (my === seq) show('<p class="empty">Search is unavailable right now. Check your connection.</p>');
@@ -47,8 +48,9 @@ export function installSearch() {
       items.forEach((x, i) => x.setAttribute('aria-selected', i === sel));
     }
     if (e.key === 'Enter') {
+      seq++; // a search still on its way must not reopen the list
       if (items[sel]) items[sel].click();
-      else if (q.value.trim()) store.track('search', null, { q: q.value.trim() }), location.hash = `#/discover?q=${encodeURIComponent(q.value.trim())}&mode=all&sort=relevance`;
+      else if (q.value.trim()) store.track('search', null, { q: q.value.trim() }), go(`/discover?q=${encodeURIComponent(q.value.trim())}&mode=all&sort=relevance`);
       close(); q.blur();
     }
     if (e.key === 'Escape') { close(); q.blur(); }

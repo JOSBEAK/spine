@@ -28,7 +28,7 @@ const tasteHTML = t => (!t.subjects.length && !t.authors.length)
   ? '<p class="muted">Nothing yet. Open, read and shelve a few books and Spine will learn what you like.</p>'
   : (() => {
     const max = Math.max(...t.subjects.map(s => s.score), ...t.authors.map(a => a.score), 1);
-    const bar = x => `<li><a href="#/discover?${x.author ? `q=${encodeURIComponent(`author:"${x.name}"`)}` : `subject=${encodeURIComponent(x.name)}&label=${encodeURIComponent(x.name)}`}"><span>${esc(x.name)}</span><i style="--w:${Math.max(6, Math.round(x.score / max * 100))}%"></i></a></li>`;
+    const bar = x => `<li><a href="/discover?${x.author ? `q=${encodeURIComponent(`author:"${x.name}"`)}` : `subject=${encodeURIComponent(x.name)}&label=${encodeURIComponent(x.name)}`}"><span>${esc(x.name)}</span><i style="--w:${Math.max(6, Math.round(x.score / max * 100))}%"></i></a></li>`;
     return `<div class="taste"><div><h3>Subjects</h3><ul>${t.subjects.slice(0, 10).map(bar).join('')}</ul></div>${t.authors.length ? `<div><h3>Authors</h3><ul>${t.authors.slice(0, 6).map(a => bar({ ...a, author: true })).join('')}</ul></div>` : ''}</div>`;
   })();
 
@@ -36,7 +36,7 @@ function historyHTML(items) {
   if (!items.length) return '<p class="muted">Your reading history will show up here.</p>';
   return `<ol class="history">${items.slice(0, 40).map(it => {
     const b = it.book || store.book(it.book_id) || {};
-    const what = it.kind === 'session' ? `${MODE_TEXT[it.mode] || 'Read'} <a href="#/book/${b.id || it.book_id}">${esc(b.title || 'a book')}</a> for ${fmtDuration(it.seconds)}` : `${EVENT_TEXT[it.type] || it.type} <a href="#/book/${b.id || it.book_id}">${esc(b.title || '')}</a>`;
+    const what = it.kind === 'session' ? `${MODE_TEXT[it.mode] || 'Read'} <a href="/book/${b.id || it.book_id}">${esc(b.title || 'a book')}</a> for ${fmtDuration(it.seconds)}` : `${EVENT_TEXT[it.type] || it.type} <a href="/book/${b.id || it.book_id}">${esc(b.title || '')}</a>`;
     return `<li><span class="when">${fmtWhen(it.at)}</span><span>${what}</span></li>`;
   }).join('')}</ol>`;
 }

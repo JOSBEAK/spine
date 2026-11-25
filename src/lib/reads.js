@@ -63,7 +63,7 @@ export function logVisit() {
   const qs = new URLSearchParams(location.search);
   const body = {
     visitor, first,
-    landing: location.hash.slice(0, 40),
+    landing: location.pathname.slice(0, 40),
     referrer: document.referrer ? document.referrer.slice(0, 200) : null,
     source: (qs.get('utm_source') || qs.get('ref') || '').slice(0, 60) || null,
   };
