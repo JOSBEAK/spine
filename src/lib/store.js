@@ -119,7 +119,8 @@ export const store = {
   setProgress(b, p) {
     const first = !state.progress[b.id];
     // text keeps {ch, frac}, scans keep {page}; both live in one record and `mode` says which was used last
-    state.progress[b.id] = { ...(state.progress[b.id] || {}), ...p, t: Date.now() };
+    // reading a book again brings it back to Continue reading and the library
+    state.progress[b.id] = { ...(state.progress[b.id] || {}), ...p, hidden: false, t: Date.now() };
     this.remember(b);
     if (!state.shelf.includes(b.id)) { state.shelf.unshift(b.id); write('shelf', state.shelf); }
     write('progress', state.progress);
@@ -132,11 +133,40 @@ export const store = {
   markBorrowed(b) { this.remember(b); if (!state.shelf.includes(b.id)) { state.shelf.unshift(b.id); write('shelf', state.shelf); } touchLib(b.id, { borrowed: true, last_opened_at: now() }); },
   reading() {
     return Object.entries(state.progress)
-      .filter(([, p]) => p.pct < 0.985)
+      .filter(([, p]) => p.pct < 0.985 && !p.hidden)
       .sort((a, b) => b[1].t - a[1].t)
       .map(([id]) => state.books[id]).filter(Boolean);
   },
   finished: id => (state.progress[id]?.pct ?? 0) >= 0.985,
+  /** In the library: saved on the shelf, or being read and not put away. */
+  inLibrary: id => state.shelf.includes(id) || (!!state.progress[id] && !state.progress[id].hidden),
+
+  /**
+   * Take a book out of Continue reading. The place you reached is kept, so opening it again
+   * carries on from there. Returns an undo function.
+   */
+  hideRecent(id) {
+    const p = state.progress[id];
+    if (!p) return () => {};
+    const before = { ...p };
+    state.progress[id] = { ...p, hidden: true };
+    write('progress', state.progress); touchLib(id); emit('library');
+    return () => { state.progress[id] = before; write('progress', state.progress); touchLib(id); emit('library'); };
+  },
+  /** Take a book out of the library: off the shelf and out of Continue reading. Returns an undo function. */
+  removeFromLibrary(id) {
+    const at = state.shelf.indexOf(id), p = state.progress[id];
+    const before = p ? { ...p } : null;
+    if (at >= 0) { state.shelf.splice(at, 1); write('shelf', state.shelf); }
+    if (p) { state.progress[id] = { ...p, hidden: true }; write('progress', state.progress); }
+    touchLib(id); emit('library');
+    this.track('shelf_remove', state.books[id] || { id });
+    return () => {
+      if (at >= 0 && !state.shelf.includes(id)) { state.shelf.splice(Math.min(at, state.shelf.length), 0, id); write('shelf', state.shelf); }
+      if (before) { state.progress[id] = before; write('progress', state.progress); }
+      touchLib(id); emit('library');
+    };
+  },
   meta: id => state.libmeta[id] || {},
 
   found: id => state.found[id],
@@ -226,7 +256,7 @@ export const store = {
       const status = (p?.pct ?? 0) >= 0.985 ? 'finished' : p ? 'reading' : m.borrowed ? 'borrowed' : 'want';
       return {
         book_id: id, on_shelf: state.shelf.includes(id), status, progress: p?.pct ?? 0,
-        position: p ? { mode: p.mode || (p.page != null && p.ch == null ? 'scan' : 'text'), ch: p.ch ?? null, frac: p.frac ?? null, page: p.page ?? null } : null,
+        position: p ? { mode: p.mode || (p.page != null && p.ch == null ? 'scan' : 'text'), ch: p.ch ?? null, frac: p.frac ?? null, page: p.page ?? null, ...(p.hidden ? { hidden: true } : {}) } : null,
         chapter_title: p?.chTitle || null, first_opened_at: m.first_opened_at || null,
         last_opened_at: m.last_opened_at || null, finished_at: m.finished_at || null,
         updated_at: m.updated_at || now(),
@@ -278,7 +308,7 @@ export const store = {
       if (!r.on_shelf && inShelf) state.shelf = state.shelf.filter(x => x !== r.book_id);
       if (r.position && (r.progress > 0 || r.status === 'reading' || r.status === 'finished')) {
         const pos = r.position || {};
-        state.progress[r.book_id] = { ...(state.progress[r.book_id] || {}), ...pos, pct: r.progress, chTitle: r.chapter_title, t: Date.parse(r.last_opened_at || r.updated_at) || Date.now() };
+        state.progress[r.book_id] = { ...(state.progress[r.book_id] || {}), ...pos, hidden: !!pos.hidden, pct: r.progress, chTitle: r.chapter_title, t: Date.parse(r.last_opened_at || r.updated_at) || Date.now() };
       }
     }
     for (const h of highlights) {

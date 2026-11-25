@@ -31,7 +31,7 @@ export function bookHTML(b, o = {}) {
   const cap = o.cap === false ? '' : `<div class="bk-cap"><b>${esc(b.title)}</b><span>${tag}${esc(b.author)}${b.year ? ` · ${esc(b.year)}` : ''}${audio ? ` · <span class="audio" title="Has a free audiobook">${I.hp}</span>` : ''}</span>${o.meter && pct != null ? `<div class="meter"><i style="width:${pct}%"></i></div>` : ''}</div>`;
   const ribbon = pct != null && pct < 99 && o.ribbon !== false;
   return `<a class="bk ${o.cls || ''}" href="#/book/${b.id}" data-id="${b.id}" style="--tone:${toneOf(b)};--t:${t}px;${o.i != null ? `--i:${o.i};` : ''}" aria-label="${esc(b.title)} by ${esc(b.author)}">
-    <div class="bk-scene"><div class="bk-shadow"></div><div class="bk-body">
+    <div class="bk-scene">${o.remove ? `<button class="bk-x" data-remove-${o.remove}="${b.id}" aria-label="Remove ${esc(b.title)} from ${o.remove === 'recent' ? 'Continue reading' : 'your library'}" title="${o.remove === 'recent' ? 'Remove from Continue reading' : 'Remove from library'}">${I.x}</button>` : ''}<div class="bk-shadow"></div><div class="bk-body">
       <div class="bk-face bk-back"><b>${esc(b.title)}</b><p>${esc((b.blurb || b.first || '').slice(0, 220))}</p></div>
       <div class="bk-face bk-spine"><span>${esc(b.title)}</span></div>
       <div class="bk-face bk-top"></div>

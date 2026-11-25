@@ -10,13 +10,13 @@ const MAX_PAGES = 6;
  * A horizontal shelf. Pass `books` to render now, or `load(page)` (async → books) to fill it when it
  * scrolls into view. Loaded shelves keep fetching the next page as you scroll them sideways.
  */
-export function rowHTML({ title, sub = '', books, load, all, meter }) {
+export function rowHTML({ title, sub = '', books, load, all, meter, remove }) {
   const id = 'row' + (++uid);
   if (load) loaders.set(id, { load, meter, page: 0, done: false, busy: false, seen: new Set() });
   return `<section class="row" aria-labelledby="${id}-h" data-row="${id}">
     <div class="row-head"><h2 id="${id}-h">${esc(title)}</h2>${sub ? `<p>${esc(sub)}</p>` : ''}${all ? `<a href="${all}">See all ${I.arrowR}</a>` : ''}</div>
     <button class="arrow prev" aria-label="Scroll back" disabled>${I.chevL}</button>
-    <div class="shelf">${books ? books.map((b, i) => bookHTML(b, { meter, i: Math.min(i, 12), cls: 'rise' })).join('') : skeletonHTML(8)}</div>
+    <div class="shelf">${books ? books.map((b, i) => bookHTML(b, { meter, remove, i: Math.min(i, 12), cls: 'rise' })).join('') : skeletonHTML(8)}</div>
     <button class="arrow next" aria-label="Scroll forward">${I.chevR}</button>
   </section>`;
 }

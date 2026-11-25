@@ -129,6 +129,26 @@ async function render() {
 
 addEventListener('hashchange', () => { if (!isBusy()) render(); });
 
+// Remove a book from Continue reading or from the library. Runs before the other click handlers, so
+// the button inside a book card doesn't also open the book. Undo puts everything back.
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-remove-recent], [data-remove-lib], .bookcase3d.tidying .vol[data-lib]');
+  if (!t) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const id = t.dataset.removeRecent || t.dataset.removeLib || t.dataset.id;
+  const lib = !('removeRecent' in t.dataset);
+  const title = (store.book(id) || known.get(id))?.title || 'the book';
+  const undo = lib ? store.removeFromLibrary(id) : store.hideRecent(id);
+  const again = () => { window.__keepScroll = true; actions.rerender(); };
+  const card = t.closest('.vol, .ns-card, .mini, .bk') || (t.closest('.hero') ? $('.hero', view) : null);
+  if (card && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    card.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(10px) scale(.92)' }], { duration: 220, easing: 'ease-in', fill: 'forwards' });
+    setTimeout(again, 230);
+  } else again();
+  toast(lib ? `Removed “${title}” from your library` : `Removed “${title}” from Continue reading`, { action: 'Undo', onAction: () => { undo(); again(); } });
+}, true);
+
 // A book on a shelf flies into its own page.
 document.addEventListener('click', e => {
   const a = e.target.closest('a.bk');

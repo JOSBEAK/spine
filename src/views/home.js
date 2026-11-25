@@ -57,7 +57,7 @@ function heroHTML() {
   const pct = p ? Math.round(p.pct * 100) : null;
   const others = reading.slice(1, 3);
   const side = others.length
-    ? `<h3>Also on your nightstand</h3>${others.map(o => `<a class="mini" href="#/book/${o.id}">${o.cover ? `<img src="${coverURL(o, 'S')}" alt="">` : ''}<div><b>${esc(o.title)}</b><span>${esc(o.author)}</span><div class="meter"><i style="width:${Math.round((store.progress(o.id)?.pct || 0) * 100)}%"></i></div></div></a>`).join('')}`
+    ? `<h3>Also on your nightstand</h3>${others.map(o => `<a class="mini" href="#/book/${o.id}">${o.cover ? `<img src="${coverURL(o, 'S')}" alt="">` : ''}<div><b>${esc(o.title)}</b><span>${esc(o.author)}</span><div class="meter"><i style="width:${Math.round((store.progress(o.id)?.pct || 0) * 100)}%"></i></div></div><button class="mini-x" data-remove-recent="${o.id}" aria-label="Remove ${esc(o.title)} from Continue reading" title="Remove from Continue reading">${I.x}</button></a>`).join('')}`
     : `<h3>Three ways to read</h3>
        <div class="mini"><span class="how">${I.book}</span><div><b>Read here</b><span>Clean text or the original printed pages</span></div></div>
        <div class="mini"><span class="how">${I.scan}</span><div><b>Borrow free</b><span>Modern books from a free lending library</span></div></div>
@@ -74,6 +74,7 @@ function heroHTML() {
       <div class="btns">
         <button class="btn btn-ink" data-read="${b.id}">${p ? 'Keep reading' : 'Start reading'} ${I.arrowR}</button>
         ${b.lv || b.audio ? `<button class="btn btn-line" data-listen="${b.id}">${I.ear} Listen instead</button>` : `<a class="btn btn-line" href="#/book/${b.id}">About this book</a>`}
+        ${p ? `<button class="btn-quiet" data-remove-recent="${b.id}">${I.x} Remove from Continue reading</button>` : ''}
       </div>
     </div>
     <div class="nightstand">${side}</div>
@@ -124,7 +125,7 @@ export function home() {
   const reading = store.reading();
   const html = `
     ${heroHTML()}
-    ${reading.length > 1 ? rowHTML({ title: 'Continue reading', books: reading, meter: true }) : ''}
+    ${reading.length > 1 ? rowHTML({ title: 'Continue reading', books: reading, meter: true, remove: 'recent' }) : ''}
     <div class="personal" aria-live="polite"></div>
     <div class="top10-slot"></div>
     ${rowHTML({ title: 'Where most people start', books: pick(['Pride and Prejudice', 'Frankenstein', 'The Great Gatsby', 'Dracula', 'The Picture of Dorian Gray', "Alice's Adventures in Wonderland", 'The Adventures of Sherlock Holmes', 'Meditations', 'The Metamorphosis', 'Jane Eyre', 'Little Women', 'The Count of Monte Cristo', 'Crime and Punishment', 'Moby-Dick', 'Treasure Island', 'A Christmas Carol']) })}

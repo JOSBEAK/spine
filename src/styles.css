@@ -818,3 +818,37 @@ section[data-slot]+section[data-slot]{margin-top:30px}
   .t10-item .bk{--w:104px;--h:156px}.t10-cap{width:104px}
   .t10-tabs{margin-left:0}
 }
+
+/* ---------- removing books ---------- */
+.toast{display:flex;align-items:center;gap:14px}
+.toast button{color:#9ff0c9;font-weight:600;font-size:14px;padding:2px 4px;border-radius:6px}
+.toast button:hover{text-decoration:underline;text-underline-offset:3px}
+.btn-quiet{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 12px;border-radius:10px;font-size:13.5px;font-weight:500;color:var(--ink-3);transition:color .2s,background .2s}
+.btn-quiet:hover{color:#a3302a;background:#fbeeed}
+.btn-quiet svg{width:14px;height:14px}
+.bk-x,.mini-x,.ns-x{display:grid;place-items:center;border-radius:50%;color:var(--ink);background:rgba(255,255,255,.94);box-shadow:0 2px 10px rgba(20,22,27,.22);transition:opacity .2s,transform .25s var(--ease-out),background .2s,color .2s}
+.bk-x svg,.mini-x svg,.ns-x svg{width:14px;height:14px}
+.bk-x:hover,.mini-x:hover,.ns-x:hover{background:#a3302a;color:#fff}
+.bk-x{position:absolute;top:-8px;right:-8px;z-index:8;width:30px;height:30px;opacity:0;transform:scale(.7)}
+.bk:hover .bk-x,.bk:focus-within .bk-x{opacity:1;transform:none}
+.mini{position:relative}
+.mini-x{position:absolute;top:50%;right:10px;width:28px;height:28px;margin-top:-14px;opacity:0;transform:scale(.7)}
+.mini:hover .mini-x,.mini:focus-within .mini-x{opacity:1;transform:none}
+.ns-card{position:relative}
+.ns-x{position:absolute;top:12px;right:12px;width:30px;height:30px;box-shadow:none;background:transparent;color:var(--ink-3);opacity:0}
+.ns-card:hover .ns-x,.ns-x:focus-visible{opacity:1}
+@media (hover:none){.bk-x,.mini-x,.ns-x{opacity:1;transform:none}}
+
+/* tidy up: books on your shelves wobble a little and show an x; a tap takes them out */
+.lib-tools{display:flex;align-items:center;gap:14px;margin:26px 40px 0}
+.lib-tools .btn[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.vol-x{position:absolute;left:50%;top:-14px;z-index:4;width:26px;height:26px;margin-left:-13px;border-radius:50%;display:grid;place-items:center;
+  background:#a3302a;color:#fff;box-shadow:0 3px 10px rgba(163,48,42,.4);opacity:0;transform:translateZ(60px) scale(.6);transition:opacity .2s,transform .3s var(--ease-out);pointer-events:none}
+.vol-x svg{width:13px;height:13px}
+.bookcase3d.tidying .vol[data-lib] .vol-x{opacity:1;transform:translateZ(60px)}
+.bookcase3d.tidying .vol[data-lib]{animation:wobble .5s ease-in-out infinite alternate;animation-delay:calc(var(--d) * -.003s)}
+.bookcase3d.tidying .vol[data-lib]:hover .vol-box{transform:translateZ(calc(var(--d) * -.04)) translateY(-6px)}
+.bookcase3d.tidying .vol:not([data-lib]){opacity:.45}
+@keyframes wobble{from{transform:rotate(-1.2deg)}to{transform:rotate(1.2deg)}}
+@media (max-width:760px){.lib-tools{margin:22px 16px 0;flex-wrap:wrap}}
+@media (prefers-reduced-motion:reduce){.bookcase3d.tidying .vol[data-lib]{animation:none}}

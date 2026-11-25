@@ -8,6 +8,8 @@ import { bookHTML, frontHTML, toneOf, sampleTone, applyTone } from '../ui/book.j
 import { fmtDuration, fmtWhen } from '../ui/activity.js';
 import { I } from '../ui/icons.js';
 
+let tidying = false; // stays on while you remove several books in a row
+
 /* ---------- one book on a shelf ---------- */
 
 function dims(b) {
@@ -30,7 +32,8 @@ function vol(b) {
   const p = store.progress(b.id);
   const reading = p && !store.finished(b.id);
   const surname = (b.author || '').split(/[ ,]+/).filter(Boolean).pop() || '';
-  return `<a class="vol ${isLight(tone) ? 'light' : ''}" href="#/book/${b.id}" data-id="${b.id}"
+  const mine = store.inLibrary(b.id);
+  return `<a class="vol ${isLight(tone) ? 'light' : ''}" href="#/book/${b.id}" data-id="${b.id}"${mine ? ' data-lib' : ''}
       data-tip="${esc(b.title)}" data-by="${esc(b.author || '')}" data-st="${status(b)}"
       style="--tone:${tone};--w:${w}px;--h:${h}px;--d:${d}px" aria-label="${esc(b.title)}, ${esc(b.author || '')}. ${status(b)}">
     <span class="vol-box">
@@ -39,6 +42,7 @@ function vol(b) {
       <span class="vol-cover" style="--w:${d}px">${frontHTML(b)}</span>
       ${reading ? `<span class="vol-ribbon" style="--p:${p.pct}"></span>` : ''}
     </span>
+    ${mine ? `<span class="vol-x" aria-hidden="true">${I.x}</span>` : ''}
   </a>`;
 }
 
@@ -74,6 +78,7 @@ function nsCard(b, i) {
   const pct = Math.max(1, Math.round((p.pct || 0) * 100));
   const where = [p.chTitle, p.t ? `read ${fmtWhen(new Date(p.t).toISOString())}` : ''].filter(Boolean).join(' · ');
   return `<article class="ns-card" style="--i:${i}">
+    <button class="ns-x" data-remove-lib="${b.id}" aria-label="Remove ${esc(b.title)} from your library" title="Remove from library">${I.x}</button>
     ${bookHTML(b, { cap: false, ribbon: false })}
     <div class="ns-info">
       <b>${esc(b.title)}</b><span class="by">${esc(b.author || '')}</span>
@@ -122,11 +127,12 @@ export function library() {
       </div>
       ${stats(shelf)}
     </header>
+    ${shelf.length ? `<div class="lib-tools"><button class="btn btn-line sm" data-tidy aria-pressed="${tidying}">${tidying ? 'Done' : 'Tidy up'}</button><span class="muted sm" data-tidy-hint ${tidying ? '' : 'hidden'}>Tap a book on your shelves to take it out of your library.</span></div>` : ''}
     ${reading.length ? `<section class="lib-now rise" style="--i:1">
       <p class="lib-label">Reading now</p>
       <div class="ns-grid">${reading.slice(0, 4).map(nsCard).join('')}</div>
     </section>` : ''}
-    <div class="bookcase3d rise" style="--i:2">
+    <div class="bookcase3d rise ${tidying ? 'tidying' : ''}" style="--i:2">
       <section data-slot="want"></section>
       <section data-slot="done"></section>
       <section data-slot="picks"></section>
@@ -151,6 +157,13 @@ export function library() {
         wireLabels(root);
       };
       paint();
+      $('[data-tidy]', root)?.addEventListener('click', e => {
+        tidying = !tidying;
+        e.currentTarget.setAttribute('aria-pressed', tidying);
+        e.currentTarget.textContent = tidying ? 'Done' : 'Tidy up';
+        $('[data-tidy-hint]', root).hidden = !tidying;
+        $('.bookcase3d', root).classList.toggle('tidying', tidying);
+      });
       const ro = new ResizeObserver(debounce(() => { if (!root.isConnected) return ro.disconnect(); paint(); }, 120));
       ro.observe($('.bookcase3d', root));
 

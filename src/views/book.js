@@ -117,6 +117,7 @@ export function bookPage(b) {
         <div class="btns">
           ${primary}
           <button class="btn btn-line shelf-btn" data-shelf aria-pressed="${store.onShelf(b.id)}"><span class="rb"></span><span>${store.onShelf(b.id) ? 'On your shelf' : 'Add to shelf'}</span></button>
+          ${store.inLibrary(b.id) ? `<button class="btn-quiet" data-remove-lib="${b.id}">${I.x} Remove from library</button>` : ''}
         </div>
         <div class="ways">
           <h2>Ways to read</h2>
