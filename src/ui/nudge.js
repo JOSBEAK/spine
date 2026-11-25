@@ -1,75 +1,82 @@
-// A gentle invitation to create an account, so reading history isn't stuck in one browser.
-// Never forced: it shows after a real reading sitting, at most once every few days, and stops
-// for good after it has been waved away three times or once there's an account.
+// Inviting people to create an account. Never forced: every book stays free to read without one.
+// Anyone not signed in sees a welcome modal each time they open the site; it closes with ×, Esc,
+// a click outside, or "Maybe later".
 import { store } from '../lib/store.js';
 import { accountsEnabled } from '../lib/api.js';
 import { fadeOut } from '../lib/util.js';
 import { I } from './icons.js';
 
-const KEY = 'spine.v1.nudge';
-const GAP_DAYS = 4;
-const MAX_DISMISSALS = 3;
-const MIN_SECONDS = 60; // read at least a minute in total before asking
-
-const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || { n: 0, at: 0 }; } catch { return { n: 0, at: 0 }; } };
-const save = v => { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch { /* private mode */ } };
-
-/** Opens the account page with "Create account" chosen. */
-export function goSignup() {
-  try { sessionStorage.setItem('spine.signup', '1'); } catch { /* ignore */ }
+/** Opens the account page with "Create account" (or "Sign in") chosen. */
+export function goSignup(mode = 'up') {
+  try { sessionStorage.setItem('spine.signup', mode); } catch { /* ignore */ }
   if (location.hash === '#/account') dispatchEvent(new HashChangeEvent('hashchange')); else location.hash = '#/account';
 }
 
-const sittings = () => store.history().filter(x => x.kind === 'session');
-const minutesRead = () => Math.round(sittings().reduce((t, s) => t + (s.seconds || 0), 0) / 60);
+const signedOut = () => accountsEnabled() && !store.account?.user;
+const LOGO = '<svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="17" fill="#14161b"/><rect x="15" y="12" width="13" height="40" rx="3" fill="#fff"/><rect x="15" y="18.5" width="13" height="2.6" fill="#14161b" opacity=".45"/><rect x="15" y="43" width="13" height="2.6" fill="#14161b" opacity=".45"/><rect x="36" y="17" width="11" height="35" rx="3" fill="#35c48d" transform="rotate(-15 47 52)"/></svg>';
 
-function canAsk() {
-  if (!accountsEnabled() || store.account?.user) return false;
-  const s = load();
-  if (s.n >= MAX_DISMISSALS || Date.now() - s.at < GAP_DAYS * 86400e3) return false;
-  return sittings().reduce((t, x) => t + (x.seconds || 0), 0) >= MIN_SECONDS;
-}
-
-function show() {
-  if (document.querySelector('.nudge') || !canAsk()) return;
-  const mins = minutesRead();
-  const books = new Set(sittings().map(s => s.book_id)).size;
-  const el = document.createElement('aside');
-  el.className = 'nudge';
-  el.setAttribute('role', 'dialog');
-  el.setAttribute('aria-labelledby', 'nudge-h');
+function showWelcome() {
+  if (!signedOut() || document.querySelector('.welcome')) return;
+  const back = document.activeElement;
+  const el = document.createElement('div');
+  el.className = 'welcome';
   el.innerHTML = `
-    <button class="nudge-x" aria-label="Not now">${I.x}</button>
-    <div class="nudge-ico">${I.clock}</div>
-    <div>
-      <h2 id="nudge-h">Keep your reading history</h2>
-      <p>You've read for ${mins < 1 ? 'a minute' : `${mins} min`}${books > 1 ? ` across ${books} books` : ''}. Right now that's saved only in this browser. A free account keeps your place, highlights and history on every device.</p>
-      <div class="nudge-btns"><button class="btn btn-ink sm" data-go>Create free account</button><button class="btn-quiet" data-later>Not now</button></div>
+    <div class="welcome-card" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="welcome-h" aria-describedby="welcome-p">
+      <button class="welcome-x" aria-label="Close">${I.x}</button>
+      <div class="welcome-logo">${LOGO}</div>
+      <h2 id="welcome-h">Every book here is free to read.</h2>
+      <p id="welcome-p">No subscription, no card. Just sign up to keep your place, your highlights and your reading history on every device.</p>
+      <ul class="welcome-list">
+        <li>${I.book}<span>Read as many books as you like, free</span></li>
+        <li>${I.clock}<span>Your reading history, saved to your account</span></li>
+        <li>${I.spark}<span>Picks that learn what you like to read</span></li>
+      </ul>
+      <div class="welcome-btns"><button class="btn btn-ink" data-go>Sign up free ${I.arrowR}</button><button class="btn btn-line" data-in>Sign in</button></div>
+      <button class="btn-quiet welcome-later" data-later>Maybe later, just let me read</button>
     </div>`;
-  const close = dismissed => {
-    if (dismissed) { const s = load(); save({ n: s.n + 1, at: Date.now() }); }
-    fadeOut(el, 220);
+  const close = () => {
+    removeEventListener('keydown', onKey, true);
+    fadeOut(el, 200);
+    try { back?.focus?.({ preventScroll: true }); } catch { /* gone */ }
   };
-  el.querySelector('[data-go]').onclick = () => { save({ ...load(), at: Date.now() }); close(false); goSignup(); };
-  el.querySelector('[data-later]').onclick = () => close(true);
-  el.querySelector('.nudge-x').onclick = () => close(true);
+  const onKey = e => {
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); }
+    if (e.key === 'Tab') { // keep focus inside the dialog
+      const f = [...el.querySelectorAll('button')]; const i = f.indexOf(document.activeElement); if (i < 0) { e.preventDefault(); (e.shiftKey ? f.at(-1) : f[0]).focus(); return; }
+      if (e.shiftKey && i <= 0) { e.preventDefault(); f.at(-1).focus(); } else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
+    }
+  };
+  el.addEventListener('click', e => { if (e.target === el) close(); });
+  el.querySelector('.welcome-x').onclick = close;
+  el.querySelector('[data-later]').onclick = close;
+  el.querySelector('[data-go]').onclick = () => { close(); goSignup('up'); };
+  el.querySelector('[data-in]').onclick = () => { close(); goSignup('in'); };
+  addEventListener('keydown', onKey, true);
   document.body.appendChild(el);
-  save({ ...load(), at: Date.now() }); // shown counts as asked, so it won't pop up again this week
+  requestAnimationFrame(() => el.querySelector('.welcome-card').focus({ preventScroll: true }));
 }
 
-/** Asks after a reading sitting ends, once the reader is closed. */
-export function installNudge(readerOpen) {
-  let timer = 0;
-  store.on(what => {
-    if (what !== 'session') return;
-    clearTimeout(timer);
-    const tryShow = () => { if (readerOpen()) { timer = setTimeout(tryShow, 4000); return; } show(); };
-    timer = setTimeout(tryShow, 1400);
-  });
-  store.on(what => { if (what === 'account' && store.account?.user) document.querySelector('.nudge')?.remove(); });
+/**
+ * Shows the welcome modal once per page load to anyone not signed in. If the site opened straight
+ * into a book (or on the account page), it waits until they leave it.
+ */
+export function installWelcome(readerOpen) {
+  if (!signedOut()) return;
+  const busy = () => readerOpen() || /^#\/(account|read|scan|listen)\b/.test(location.hash);
+  const attempt = () => {
+    if (busy()) return false;
+    showWelcome();
+    return true;
+  };
+  setTimeout(() => {
+    if (attempt()) return;
+    const onHash = () => setTimeout(() => { if (attempt()) removeEventListener('hashchange', onHash); }, 700);
+    addEventListener('hashchange', onHash);
+  }, 1200);
+  store.on(what => { if (what === 'account' && store.account?.user) document.querySelector('.welcome')?.remove(); });
 }
 
 /** A quiet line for places that show reading progress to someone without an account. */
-export const saveHintHTML = () => (accountsEnabled() && !store.account?.user
-  ? `<button class="save-hint" data-signup>${I.clock}<span>Saved in this browser only. <u>Create a free account</u> to keep your history everywhere.</span></button>`
+export const saveHintHTML = () => (signedOut()
+  ? `<button class="save-hint" data-signup>${I.clock}<span>Saved in this browser only. <u>Sign up free</u> to keep your history everywhere.</span></button>`
   : '');

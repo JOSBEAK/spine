@@ -96,7 +96,7 @@ export function account() {
           $('button[type=submit]', form).textContent = mode === 'up' ? 'Create account' : 'Sign in';
           $('#a-pass', form).autocomplete = mode === 'up' ? 'new-password' : 'current-password';
         });
-        try { if (sessionStorage.getItem('spine.signup')) { sessionStorage.removeItem('spine.signup'); $('[data-mode="up"]', root)?.click(); requestAnimationFrame(() => { form.scrollIntoView({ block: 'center', behavior: 'smooth' }); $('input', form)?.focus({ preventScroll: true }); }); } } catch { /* ignore */ }
+        try { const want = sessionStorage.getItem('spine.signup'); if (want) { sessionStorage.removeItem('spine.signup'); $(`[data-mode="${want === 'in' ? 'in' : 'up'}"]`, root)?.click(); requestAnimationFrame(() => { form.scrollIntoView({ block: 'center', behavior: 'smooth' }); $('input', form)?.focus({ preventScroll: true }); }); } } catch { /* ignore */ }
         $('.show', form).onclick = e => { const i = $('#a-pass', form); i.type = i.type === 'password' ? 'text' : 'password'; e.currentTarget.textContent = i.type === 'password' ? 'Show' : 'Hide'; };
         form.onsubmit = async e => {
           e.preventDefault();

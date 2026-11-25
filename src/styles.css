@@ -853,17 +853,26 @@ section[data-slot]+section[data-slot]{margin-top:30px}
 @media (max-width:760px){.lib-tools{margin:22px 16px 0;flex-wrap:wrap}}
 @media (prefers-reduced-motion:reduce){.bookcase3d.tidying .vol[data-lib]{animation:none}}
 
-/* ---------- create-account invitation ---------- */
-.nudge{position:fixed;right:24px;bottom:calc(24px + env(safe-area-inset-bottom,0px));z-index:65;width:min(400px,calc(100vw - 32px));display:flex;gap:14px;background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:18px 18px 16px;box-shadow:0 24px 60px rgba(20,22,27,.16),0 2px 6px rgba(20,22,27,.06);animation:up .45s var(--ease-out)}
-.nudge h2{font-family:var(--f-display);font-weight:400;font-size:21px;line-height:1.15;margin:2px 28px 6px 0}
-.nudge p{font-size:14px;color:var(--ink-2);line-height:1.5}
-.nudge-ico{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:#e6f7ef;color:#1f9e6e}
-.nudge-ico svg{width:20px;height:20px}
-.nudge-btns{display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap}
-.nudge-x{position:absolute;right:10px;top:10px;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:var(--ink-3)}
-.nudge-x:hover{background:var(--wash);color:var(--ink)}
-.nudge-x svg{width:16px;height:16px}
-@media (max-width:640px){.nudge{right:16px;left:16px;width:auto;bottom:calc(84px + env(safe-area-inset-bottom,0px))}}
+/* ---------- sign-up welcome ---------- */
+.welcome{position:fixed;inset:0;z-index:90;display:grid;place-items:center;padding:16px;background:rgba(20,22,27,.42);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:welcomeIn .25s ease-out}
+@keyframes welcomeIn{from{opacity:0}}
+.welcome-card{outline:none;position:relative;width:min(440px,100%);max-height:calc(100dvh - 32px);overflow:auto;background:var(--paper);border-radius:24px;padding:34px 32px 24px;text-align:center;box-shadow:0 40px 100px rgba(20,22,27,.3);animation:welcomeUp .45s var(--ease-out)}
+@keyframes welcomeUp{from{opacity:0;transform:translateY(18px) scale(.97)}}
+.welcome-logo svg{width:58px;height:58px;display:block;margin:0 auto 18px}
+.welcome-card h2{font-family:var(--f-display);font-weight:400;font-size:30px;line-height:1.1;letter-spacing:-.01em;margin:0 0 10px}
+.welcome-card>p{color:var(--ink-2);font-size:15px;line-height:1.55;margin:0 auto 18px;max-width:34ch}
+.welcome-list{list-style:none;padding:14px 16px;margin:0 0 22px;text-align:left;display:grid;gap:10px;background:var(--wash);border-radius:16px}
+.welcome-list li{display:flex;align-items:center;gap:11px;font-size:14px;color:var(--ink)}
+.welcome-list svg{width:18px;height:18px;flex:none;color:#1f9e6e}
+.welcome-btns{display:grid;grid-template-columns:1.4fr 1fr;gap:10px}
+.welcome-btns .btn{justify-content:center;width:100%}
+.welcome-later{margin-top:14px;font-size:13px}
+.welcome-x{position:absolute;right:14px;top:14px;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:var(--ink-3)}
+.welcome-x:hover{background:var(--wash);color:var(--ink)}
+.welcome-x svg{width:17px;height:17px}
+@media (max-width:480px){.welcome{align-items:end;padding:0}.welcome-card{border-radius:24px 24px 0 0;padding:30px 22px calc(20px + env(safe-area-inset-bottom,0px));max-height:92dvh}.welcome-btns{grid-template-columns:1fr}.welcome-card h2{font-size:27px}}
+@media (prefers-reduced-motion:reduce){.welcome,.welcome-card{animation:none}}
+/* ---------- quiet sign-up hint ---------- */
 .save-hint{display:inline-flex;align-items:center;gap:8px;margin-top:14px;font-size:13px;color:var(--ink-2);text-align:left}
 .save-hint svg{width:15px;height:15px;flex:none;color:#1f9e6e}
 .save-hint u{text-decoration-color:rgba(31,158,110,.5);text-underline-offset:3px}

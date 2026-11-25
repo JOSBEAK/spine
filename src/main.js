@@ -12,7 +12,7 @@ import { openReader, closeReader, readerOpen, readerKey } from './ui/reader.js';
 import { openPanel, closePanel, panelOpen } from './ui/panel.js';
 import { listen } from './ui/player.js';
 import { toast } from './ui/toast.js';
-import { installNudge, goSignup } from './ui/nudge.js';
+import { installWelcome, goSignup } from './ui/nudge.js';
 import { home } from './views/home.js';
 import { discover } from './views/discover.js';
 import { library } from './views/library.js';
@@ -190,7 +190,7 @@ store.on(what => { if (what === 'account') paintAccount(); });
 
 installTilt();
 installSearch();
-installNudge(readerOpen);
+installWelcome(readerOpen);
 document.addEventListener('click', e => { if (e.target.closest('[data-signup]')) { e.preventDefault(); goSignup(); } });
 paintAccount();
 render();
