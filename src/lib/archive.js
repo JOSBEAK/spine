@@ -1,6 +1,7 @@
 // Internet Archive: Gutenberg text mirrors, LibriVox audiobooks, scans, EPUB files.
 import { fetchJSON } from './util.js';
 import { store } from './store.js';
+import { apiBase } from './api.js';
 import { parseGutenberg } from './gutenberg.js';
 
 const IA = 'https://archive.org';
@@ -96,7 +97,11 @@ export function loadText(item) {
     const rank = n => /\.txt\.utf8$/i.test(n) ? 0 : /-0\.txt$/i.test(n) ? 1 : /^pg\d+\.txt$/i.test(n) ? 2 : /^\d+\.txt$/i.test(n) ? 3 : /-8\.txt$/i.test(n) ? 4 : 5;
     names.sort((a, b) => rank(a) - rank(b));
     if (!names.length) throw new Error('No plain-text file in this Gutenberg item.');
-    const r = await fetch(download(item, names[0]));
+    // archive.org's download redirect has no CORS header, so Spine's server fetches the file
+    const base = apiBase();
+    const direct = download(item, names[0]);
+    let r = base ? await fetch(`${base}/texts/${encodeURIComponent(item)}/${encodeURIComponent(names[0])}`).catch(() => null) : null;
+    if (!r?.ok) r = await fetch(direct);
     if (!r.ok) throw new Error(`The text file did not load (${r.status}).`);
     const buf = await r.arrayBuffer();
     let raw;

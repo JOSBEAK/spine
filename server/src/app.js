@@ -15,6 +15,7 @@ import { meRoutes } from './me.js';
 import { syncRoutes } from './sync.js';
 import { linkRoutes } from './links.js';
 import { readRoutes } from './reads.js';
+import { textRoutes } from './texts.js';
 
 const BODY_LIMIT = 2.5 * 1024 * 1024; // CSV exports up to ~2 MB, plus JSON escaping
 
@@ -62,6 +63,7 @@ export function createApp({ db, fetch = globalThis.fetch, now = () => new Date()
   syncRoutes(app, ctx);
   linkRoutes(app, ctx);
   readRoutes(app, ctx);
+  textRoutes(app, { ...ctx, fetch });
 
   app.notFound((c) => c.json({ error: `There's no ${c.req.method} ${c.req.path} endpoint. See server/API.md for the list.` }, 404));
   app.onError((err, c) => {
