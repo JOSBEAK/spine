@@ -73,7 +73,7 @@ npm run build   # static site in dist/
 
 Pushing to `main` deploys the web app to GitHub Pages through `.github/workflows/deploy.yml`. The repository variable `VITE_API_URL` points the live site at the server.
 
-**Live:** web app at https://josbeak.github.io/spine/, API at https://spine-api-iota.vercel.app (Vercel project `spine-api`, Neon Postgres `spine-db`, region iad1). Deploy the API with `cd server && vercel deploy --prod`.
+**Live:** web app at https://spinebrew.com (GitHub Pages, custom domain; the old https://josbeak.github.io/spine/ redirects there), API at https://api.spinebrew.com (also https://spine-api-iota.vercel.app) (Vercel project `spine-api`, Neon Postgres `spine-db`, region iad1). Deploy the API with `cd server && vercel deploy --prod`.
 
 ## How it's built
 
