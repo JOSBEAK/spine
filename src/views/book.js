@@ -7,6 +7,8 @@ import { rowHTML, wireRows } from '../ui/rows.js';
 import { I } from '../ui/icons.js';
 import { toast } from '../ui/toast.js';
 import { fillActivity } from '../ui/activity.js';
+import { accountsEnabled } from '../lib/api.js';
+import { bookReaders } from '../lib/reads.js';
 
 export function bookLoading() {
   return { html: `<section class="detail"><div class="detail-grid"><div class="stage3d"></div><div class="info"><p class="eyebrow">Finding this book…</p></div></div></section>`, wire() {} };
@@ -94,6 +96,7 @@ export function bookPage(b) {
     : `${b.year ? `<div><dt>First published</dt><dd>${esc(b.year)}</dd></div>` : ''}
        ${b.pages ? `<div><dt>Length</dt><dd>${b.pages} pages</dd></div><div><dt>Reading time</dt><dd>${readingTime(b.pages)}</dd></div>` : ''}
        ${borrow ? '<div><dt>Access</dt><dd>Borrow free</dd></div>' : `<div data-audio-fact><dt>Audiobook</dt><dd class="dim">${b.audio || 'Checking…'}</dd></div>`}`;
+  const readersFact = accountsEnabled() ? '<div data-readers><dt>Read this month</dt><dd class="dim">Counting…</dd></div>' : '';
   const ext = tb ? b.web : borrow ? borrowURL(b) : null;
   const primary = `<button class="btn btn-ink" data-primary>${p && !tb && !borrow ? `Keep reading · ${Math.round(p.pct * 100)}%` : borrow ? 'Read here' : 'Start reading'} ${I.arrowR}</button>`
     + (ext ? `<a class="btn btn-line" href="${ext}" target="_blank" rel="noopener">Open in browser ${I.ext}</a>` : '');
@@ -109,7 +112,7 @@ export function bookPage(b) {
         <p class="eyebrow">${eyebrow}</p>
         <h1>${words}</h1>
         <p class="by">${authorLink}</p>
-        <dl class="facts">${facts}</dl>
+        <dl class="facts">${facts}${readersFact}</dl>
         <p class="blurb ${blurb ? '' : 'loading'}">${esc(blurb) || 'Loading the description…'}</p>
         <div class="btns">
           ${primary}
@@ -136,6 +139,19 @@ export function bookPage(b) {
       applyTone(root, b);
       store.remember(b);
       wireDrag($('.stage3d .bk', root));
+      // how many people opened this book this month (each reader once)
+      const rf = $('[data-readers] dd', root);
+      const showReaders = () => bookReaders(b.id).then(r => {
+        if (!rf.isConnected) return;
+        rf.classList.toggle('dim', !r.month);
+        rf.textContent = r.month ? `${r.month.toLocaleString('en')} ${r.month === 1 ? 'person' : 'people'}` : 'Be the first';
+        rf.title = r.all_time ? `${r.all_time.toLocaleString('en')} ${r.all_time === 1 ? 'reader' : 'readers'} since Spine opened, each counted once a month` : '';
+      }).catch(() => rf.parentElement?.remove());
+      if (rf) {
+        showReaders();
+        const onRead = e => { if (!rf.isConnected) return removeEventListener('spine:read', onRead); if (e.detail === b.id) showReaders(); };
+        addEventListener('spine:read', onRead);
+      }
       $('[data-back]', root).onclick = () => (history.length > 1 ? history.back() : (location.hash = '#/'));
       const sb = $('[data-shelf]', root);
       sb.onclick = () => {

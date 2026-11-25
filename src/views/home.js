@@ -6,6 +6,7 @@ import { personalRows } from '../lib/recs.js';
 import { bookHTML, applyTone } from '../ui/book.js';
 import { rowHTML, wireRows } from '../ui/rows.js';
 import { I } from '../ui/icons.js';
+import { fillTop10 } from '../ui/top10.js';
 
 const nf = s => `(${s.map(x => `subject:"${x}"`).join(' OR ')}) -subject:fiction`;
 
@@ -125,6 +126,7 @@ export function home() {
     ${heroHTML()}
     ${reading.length > 1 ? rowHTML({ title: 'Continue reading', books: reading, meter: true }) : ''}
     <div class="personal" aria-live="polite"></div>
+    <div class="top10-slot"></div>
     ${rowHTML({ title: 'Where most people start', books: pick(['Pride and Prejudice', 'Frankenstein', 'The Great Gatsby', 'Dracula', 'The Picture of Dorian Gray', "Alice's Adventures in Wonderland", 'The Adventures of Sherlock Holmes', 'Meditations', 'The Metamorphosis', 'Jane Eyre', 'Little Women', 'The Count of Monte Cristo', 'Crime and Punishment', 'Moby-Dick', 'Treasure Island', 'A Christmas Carol']) })}
     ${live('self-help')}
     ${live('money')}
@@ -141,6 +143,9 @@ export function home() {
     wire(root) {
       wireRows(root);
       applyTone(root, store.reading()[0] || dayPick());
+
+      // the most read books on Spine, once there are enough readers to rank
+      fillTop10($('.top10-slot', root));
 
       // personal shelves arrive a moment later (they may come from the server)
       personalRows().then(rows => {

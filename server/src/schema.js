@@ -151,6 +151,31 @@ CREATE TABLE IF NOT EXISTS ol_cache (
 CREATE INDEX IF NOT EXISTS ol_cache_fetched_idx ON ol_cache (fetched_at);
 `,
   },
+  {
+    version: 2,
+    sql: `
+-- Who opened which book, once per reader per month. A reader is an account id, or for people
+-- without an account a random id their browser made up (nothing personal). Rows older than
+-- 13 months are pruned; the counts below keep the history.
+CREATE TABLE IF NOT EXISTS monthly_readers (
+  month    int  NOT NULL,             -- 202611 = November 2026 (UTC)
+  book_id  text NOT NULL REFERENCES books(id),
+  reader   uuid NOT NULL,
+  PRIMARY KEY (month, book_id, reader)
+);
+
+-- Readers per book per month, bumped only when a new monthly_readers row lands,
+-- so "most read" lists and per-book counts never have to count raw rows.
+CREATE TABLE IF NOT EXISTS book_month_counts (
+  month    int  NOT NULL,
+  book_id  text NOT NULL REFERENCES books(id),
+  readers  int  NOT NULL DEFAULT 0,
+  PRIMARY KEY (month, book_id)
+);
+CREATE INDEX IF NOT EXISTS book_month_counts_top_idx ON book_month_counts (month, readers DESC);
+CREATE INDEX IF NOT EXISTS book_month_counts_book_idx ON book_month_counts (book_id);
+`,
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

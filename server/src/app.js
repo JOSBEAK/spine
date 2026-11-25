@@ -14,6 +14,7 @@ import { authRoutes } from './auth.js';
 import { meRoutes } from './me.js';
 import { syncRoutes } from './sync.js';
 import { linkRoutes } from './links.js';
+import { readRoutes } from './reads.js';
 
 const BODY_LIMIT = 2.5 * 1024 * 1024; // CSV exports up to ~2 MB, plus JSON escaping
 
@@ -42,7 +43,8 @@ export function createApp({ db, fetch = globalThis.fetch, now = () => new Date()
   );
   app.use('*', async (c, next) => {
     await next();
-    c.header('Cache-Control', 'no-store');
+    // public stats may be cached briefly; everything else is personal
+    if (!c.res.headers.get('Cache-Control')) c.header('Cache-Control', 'no-store');
   });
 
   app.get('/', (c) => c.json({ name: 'Spine API', health: '/health' }));
@@ -59,6 +61,7 @@ export function createApp({ db, fetch = globalThis.fetch, now = () => new Date()
   meRoutes(app, ctx);
   syncRoutes(app, ctx);
   linkRoutes(app, ctx);
+  readRoutes(app, ctx);
 
   app.notFound((c) => c.json({ error: `There's no ${c.req.method} ${c.req.path} endpoint. See server/API.md for the list.` }, 404));
   app.onError((err, c) => {

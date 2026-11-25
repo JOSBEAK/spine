@@ -83,6 +83,18 @@ export function requireUser(ctx) {
   };
 }
 
+/** The signed-in user for an optional `Authorization` header, or null (no header, or a stale token). */
+export async function optionalUser(ctx, c) {
+  const m = /^Bearer\s+([A-Za-z0-9_-]{20,100})\s*$/i.exec(c.req.header('authorization') || '');
+  if (!m) return null;
+  const { rows } = await ctx.db.query(
+    `SELECT u.id FROM sessions s JOIN users u ON u.id = s.user_id
+      WHERE s.token_hash = decode($1, 'hex') AND s.expires_at > $2`,
+    [sha256hex(m[1]), ctx.now().toISOString()],
+  );
+  return rows[0] || null;
+}
+
 // ---------- rate limiting (login_attempts) ----------
 
 export async function checkRateLimit(q, key, now) {

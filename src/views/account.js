@@ -75,6 +75,7 @@ export function account() {
       <section class="acct-sec"><h2>${I.clock} Reading history</h2><div data-history>${historyHTML(store.history())}</div></section>
       <section class="acct-sec"><h2>${I.link} Connected reading accounts</h2>${linksHTML(acc?.linked || [], !!user)}</section>
       <section class="acct-sec"><h2>Your data</h2>
+        ${enabled ? '<p class="muted">To show how many people read each book, Spine notes the first time you open a book each month: just the book, the month, and your account or a random number this browser keeps. Deleting your account removes your part of it.</p>' : ''}
         <div class="btns"><button class="btn btn-line" data-export>${I.down} Download my data</button>${user ? '<button class="btn btn-line" data-signout>Sign out</button><button class="btn btn-line danger" data-delete>Delete account</button>' : ''}</div>
         <p class="muted">${user ? 'Spine stores your account, shelf, progress, highlights, bookmarks, reading sittings and a taste profile. Passwords are hashed; we never store passwords for other services.' : 'Saved in this browser only. Clearing your browser data removes it.'}</p>
       </section>

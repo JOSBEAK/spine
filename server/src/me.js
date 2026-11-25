@@ -100,6 +100,8 @@ export function meRoutes(app, ctx) {
     await confirmPassword(ctx, user, password);
     await ctx.db.tx(async (q) => {
       await q.query('DELETE FROM users WHERE id = $1', [user.id]); // everything else cascades
+      // which books they opened goes too; the monthly totals stay, since they no longer point at anyone
+      await q.query('DELETE FROM monthly_readers WHERE reader = $1', [user.id]);
       await q.query(`DELETE FROM login_attempts WHERE key = $1 OR right(key, length($2) + 1) = '|' || $2`, [`pw|${user.id}`, user.email]);
     });
     return c.body(null, 204);

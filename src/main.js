@@ -4,6 +4,7 @@ import { store } from './lib/store.js';
 import { known, getBook } from './lib/openlibrary.js';
 import { accountsEnabled } from './lib/api.js';
 import { startSync } from './lib/sync.js';
+import { countRead } from './lib/reads.js';
 import { installTilt } from './ui/book.js';
 import { installSearch } from './ui/search.js';
 import { flyToDetail, openBookAnimation, isBusy } from './ui/motion.js';
@@ -63,6 +64,7 @@ function leaveOverlay(b) {
 
 function showOverlay(kind, b, fromOpen = false) {
   const onClose = () => leaveOverlay(b);
+  countRead(b); // once per book per month, for "most read" and "readers this month"
   if (kind === 'read') openReader(b, { fromOpen, onClose, onScan: () => actions.scan(b) });
   else if (kind === 'scan') openReader(b, { fromOpen, onClose, mode: 'scan' });
   else openPanel(b, kind, { onClose });

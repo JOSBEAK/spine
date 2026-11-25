@@ -140,3 +140,17 @@ Limits: 500 items per array per request (413 above that).
 - `POST /me/links/archive` `{ username? }` → records that the reader signed in to the Internet Archive inside
   Spine. No credentials are sent or stored. → `{ link }`
 - `DELETE /me/links/:provider` → `204`
+
+### Readers per book (public)
+
+The app reports the first time a reader opens a book in a calendar month (UTC). A reader is the signed-in
+account, or, without an account, a random UUID the browser keeps (`reader`). Each (month, book, reader) is
+stored once in `monthly_readers` (pruned after 13 months); `book_month_counts` keeps the per-month totals.
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| POST | `/reads` | `{ book: Book, reader?: uuid }`, optional Bearer token (then the account counts and `reader` is ignored). → `{ counted, month }`. Without an account only the book id is stored; titles shown publicly come from Open Library. Past 300 new reads per IP per hour, opens are quietly not counted. |
+| GET | `/stats/top?period=month\|all&limit=10` | → `{ period, month: "2026-11", books: [{ book, readers }] }`. `all` sums the months (a reader counts once per month). Cached 60 s. |
+| GET | `/stats/books/:id` | → `{ id, month, all_time, period }`. Cached 60 s. |
+
+Deleting an account deletes its `monthly_readers` rows; the totals stay.
