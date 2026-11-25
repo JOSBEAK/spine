@@ -42,7 +42,7 @@ function historyHTML(items) {
 }
 
 const LINKS = [
-  { key: 'archive', name: 'Internet Archive', l: 'A', c: '#30343c', d: 'Borrow modern books without leaving Spine. You sign in on the Archive\'s own page; Spine never sees your password.' },
+  { key: 'archive', name: 'Internet Archive', l: 'A', c: '#30343c', d: 'Modern books you borrow open in the Archive\'s own window, next to Spine. Sign in there once and it remembers you. Spine never sees your password.' },
   { key: 'openlibrary', name: 'Open Library', l: 'O', c: '#3c6e9e', d: 'Bring in your public Open Library reading log: want to read, reading and read.' },
   { key: 'goodreads', name: 'Goodreads', l: 'g', c: '#5a4632', d: 'Upload your Goodreads export (My Books → Import and export → Export library) to bring your shelves over.' },
   { key: 'storygraph', name: 'The StoryGraph', l: 'S', c: '#1f6f78', d: 'Upload your StoryGraph export (Manage account → Export StoryGraph library).' },
@@ -50,14 +50,15 @@ const LINKS = [
 
 function linksHTML(linked, signedIn) {
   return `<div class="links">${LINKS.map(L => {
-    const on = linked.find(x => x.provider === L.key) || (L.key === 'archive' && store.prefs.archive ? { provider: 'archive' } : null);
+    // the Archive sign-in lives in this browser's archive.org cookies, so only this browser can know it
+    const on = L.key === 'archive' ? (store.prefs.archive ? { provider: 'archive' } : null) : linked.find(x => x.provider === L.key);
     const control = L.key === 'archive'
-      ? `<button class="btn btn-line sm" data-archive>${on ? 'Sign in again' : 'Sign in to the Internet Archive'}</button>`
+      ? `<button class="btn btn-line sm" data-archive>${on ? 'Open archive.org' : 'Sign in on archive.org'}</button>`
       : !signedIn ? '<span class="muted sm">Sign in to Spine to import</span>'
         : L.key === 'openlibrary'
           ? `<form class="inline" data-ol><input name="u" placeholder="Open Library username" aria-label="Open Library username" value="${esc(on?.username || '')}" required><button class="btn btn-line sm">Import</button></form>`
           : `<label class="btn btn-line sm file">Upload CSV<input type="file" accept=".csv,text/csv" data-csv="${L.key}" hidden></label>`;
-    return `<div class="link-row"><div class="ic" style="background:${L.c}">${L.l}</div><div class="lt"><h3>${L.name} ${on ? `<em class="ok">Connected${on.username ? ` · ${esc(on.username)}` : ''}</em>` : ''}</h3><p>${L.d}</p></div><div class="lc">${control}${on && signedIn ? `<button class="x" data-unlink="${L.key}" aria-label="Disconnect ${L.name}">${I.x}</button>` : ''}</div></div>`;
+    return `<div class="link-row"><div class="ic" style="background:${L.c}">${L.l}</div><div class="lt"><h3>${L.name} ${on ? `<em class="ok">${L.key === 'archive' ? 'Signed in on this browser' : 'Connected'}${on.username ? ` · ${esc(on.username)}` : ''}</em>` : ''}</h3><p>${L.d}</p></div><div class="lc">${control}${on && (signedIn || L.key === 'archive') ? `<button class="x" data-unlink="${L.key}" aria-label="${L.key === 'archive' ? 'Forget the Internet Archive on this browser' : `Disconnect ${L.name}`}">${I.x}</button>` : ''}</div></div>`;
   }).join('')}</div>`;
 }
 
@@ -135,7 +136,7 @@ export function account() {
         onDone: async ok => {
           if (!ok) return;
           if (store.account) { try { await api('/me/links/archive', { method: 'POST', body: {} }); await loadLinks(); } catch { /* keep the local note */ } }
-          toast('Internet Archive connected. Borrowed books now open here.');
+          toast('Done. Books you borrow will open in the Archive window, already signed in.');
           rerender();
         },
       }));
@@ -163,6 +164,12 @@ export function account() {
         } catch (x) { toast(x.message); label.firstChild.textContent = old; }
       }));
       $$('[data-unlink]', root).forEach(b => b.onclick = async () => {
+        if (b.dataset.unlink === 'archive') {
+          store.prefs.archive = false; store.savePrefs();
+          if (store.account) api('/me/links/archive', { method: 'DELETE' }).catch(() => {});
+          toast('Forgotten here. To sign out of the Archive itself, use archive.org.');
+          return rerender();
+        }
         try { await api(`/me/links/${b.dataset.unlink}`, { method: 'DELETE' }); await loadLinks(); rerender(); } catch (x) { toast(x.message); }
       });
 

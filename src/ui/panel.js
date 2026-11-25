@@ -1,5 +1,7 @@
 // Full-screen panels that keep readers inside Spine for books that live on another service:
-//   borrow   — the Internet Archive's own reader for a borrowable book (preview, borrow, read)
+//   borrow   — a preview of a borrowable book; borrowing itself happens in the Archive's own window
+//              (archive.org keeps you signed in only on its own site: its cookies are SameSite=Lax, so a
+//              sign-in made inside a frame on Spine is dropped at once — that is why it kept asking)
 //   textbook — OpenStax's online textbook
 // Each panel has "Open in browser" for anyone who prefers the original site.
 import { $, esc, fetchJSON, fadeOut } from '../lib/util.js';
@@ -10,7 +12,6 @@ import { I } from './icons.js';
 let P = null;
 export const panelOpen = () => !!P;
 
-const isSafari = () => /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
 
 /** Pick an English edition the Internet Archive can lend, so readers don't land on a translation. */
 async function lendingItem(b) {
@@ -33,16 +34,11 @@ export async function openPanel(b, kind, { onClose } = {}) {
   el.setAttribute('aria-label', textbook ? `${b.title}, textbook` : `Borrow ${b.title}`);
   el.innerHTML = `<div class="rbar top">
       <button class="rbtn" data-close>${I.arrowL}<span>Close</span></button>
-      <p class="rtitle"><b>${esc(b.title)}</b> · ${textbook ? 'OpenStax textbook' : 'borrowed from the Internet Archive'}</p>
+      <p class="rtitle"><b>${esc(b.title)}</b> · ${textbook ? 'OpenStax textbook' : 'from the Internet Archive lending library'}</p>
       ${textbook && b.pdf ? `<a class="ext" href="${b.pdf}" target="_blank" rel="noopener">${I.down} PDF</a>` : ''}
-      ${textbook ? '' : `<button class="ext" data-signin>${I.user} Sign in to borrow</button>`}
       <a class="ext" href="${ext}" target="_blank" rel="noopener">Open in browser ${I.ext}</a>
     </div>
-    ${textbook ? '' : `<div class="panel-help" role="note">
-      <p><b>Borrowing is free.</b> The Internet Archive lends each copy to one reader at a time, so it asks you to sign in with a free account. You sign in on their page right here; Spine never sees your password.
-      ${isSafari() ? ' <b>Safari blocks signing in inside other sites</b>, so if it doesn\'t stick, use “Open in browser”.' : ''}</p>
-      <button class="ext" data-hide-help aria-label="Hide this note">${I.x}</button>
-    </div>`}
+    ${textbook ? '' : '<div class="borrow-bar" role="status" aria-live="polite"></div>'}
     <div class="panel-frame"><div class="r-status"><div class="lines"></div><b>Opening</b><span>${textbook ? 'Loading the textbook from OpenStax…' : 'Finding an English edition to borrow…'}</span></div></div>`;
   document.body.appendChild(el);
   document.body.style.overflow = 'hidden';
@@ -50,8 +46,7 @@ export async function openPanel(b, kind, { onClose } = {}) {
   P.timer = setInterval(() => { if (P && document.visibilityState === 'visible') { P.active += Date.now() - P.last; } if (P) P.last = Date.now(); }, 15000);
   $('[data-close]', el).onclick = () => closePanel();
   $('[data-close]', el).focus();
-  $('[data-hide-help]', el)?.addEventListener('click', e => e.currentTarget.parentElement.remove());
-
+  
   if (textbook) {
     store.setProgress(b, { pct: store.progress(b.id)?.pct || 0.01, chTitle: 'Reading online' });
     mountFrame(b.web, `${b.title} on OpenStax`);
@@ -64,11 +59,68 @@ export async function openPanel(b, kind, { onClose } = {}) {
     P.item = item;
     const embed = `https://archive.org/details/${encodeURIComponent(item)}?view=theater&ui=embed&wrapper=false`;
     mountFrame(embed, `${b.title} on the Internet Archive`);
-    $('[data-signin]', el).onclick = () => {
-      // the Archive's login page sends the reader back to the book afterwards
-      mountFrame(`https://archive.org/account/login?referer=${encodeURIComponent(embed)}`, 'Sign in to the Internet Archive');
-    };
+    paintBorrowBar();
   }
+}
+
+// ---------- the Archive window ----------
+// Borrowing and signing in happen in a window of archive.org's own, opened from Spine. Spine stays open
+// behind it, keeps the reader's place, and notices when the window is closed.
+
+const WIN = 'spine-archive';
+let W = null; // { win, poll, opened, onClosed }
+
+export function archiveWindow(url, onClosed) {
+  const w = Math.min(screen.availWidth || 1200, 1180), h = screen.availHeight || 900;
+  const left = Math.max(0, ((screen.availWidth || w) - w) / 2);
+  // keep the handle (no noopener) so Spine can see when the window closes and bring it to the front
+  const win = window.open(url, WIN, `popup=yes,width=${w},height=${h},left=${left},top=0`);
+  if (!win) { window.open(url, '_blank'); return null; } // a blocked window falls back to a tab
+  try { win.focus(); } catch {}
+  if (W) clearInterval(W.poll);
+  W = { win, opened: Date.now(), onClosed };
+  W.poll = setInterval(() => {
+    if (!W || !W.win.closed) return paintBorrowBar(true);
+    const done = W; clearInterval(done.poll); W = null;
+    done.onClosed?.(Math.round((Date.now() - done.opened) / 1000));
+    paintBorrowBar();
+  }, 1000);
+  return win;
+}
+
+const minutes = s => (s < 60 ? 'just now' : `${Math.round(s / 60)} min`);
+
+function paintBorrowBar(tick) {
+  const bar = P?.el && $('.borrow-bar', P.el);
+  if (!bar) return;
+  const reading = W && !W.win.closed;
+  if (reading) {
+    const t = minutes((Date.now() - W.opened) / 1000);
+    if (tick && $('[data-t]', bar)) { $('[data-t]', bar).textContent = t; return; }
+    bar.className = 'borrow-bar on';
+    bar.innerHTML = `<span class="dot" aria-hidden="true"></span>
+      <div class="bt"><b>Reading in the Archive window</b> · <span data-t>${t}</span><br><span>Spine is keeping your place. Close that window when you're done.</span></div>
+      <button class="btn btn-ink sm" data-show>Show the book</button>
+      <button class="btn btn-line sm" data-finish>I'm done</button>`;
+    $('[data-show]', bar).onclick = () => { try { W.win.focus(); } catch {} };
+    $('[data-finish]', bar).onclick = () => { try { W.win.close(); } catch {} };
+    return;
+  }
+  if (tick) return;
+  const known = store.prefs.archive;
+  bar.className = 'borrow-bar';
+  bar.innerHTML = `<div class="bt"><b>This is a preview.</b> ${known
+      ? 'To read the whole book, borrow it in the Archive window, where you signed in before.'
+      : 'To read the whole book, borrow it free from the Internet Archive. It opens in a window of its own; the first time, you sign in there or make a free account, and it remembers you after that.'}
+      <details><summary>Why a separate window?</summary>The Archive only keeps you signed in on its own website, so a sign-in inside Spine would be forgotten right away. Your password goes to archive.org, never to Spine.</details></div>
+    <button class="btn btn-ink sm" data-borrow>${I.scan} Borrow and read</button>`;
+  $('[data-borrow]', bar).onclick = () => {
+    if (!P?.item) return;
+    archiveWindow(`https://archive.org/details/${encodeURIComponent(P.item)}`, seconds => {
+      if (seconds > 20 && !store.prefs.archive) { store.prefs.archive = true; store.savePrefs(); }
+    });
+    paintBorrowBar();
+  };
 }
 
 function mountFrame(src, title) {
@@ -90,26 +142,14 @@ export function closePanel(instant, silent) {
   return true;
 }
 
-/** The Internet Archive's own sign-in page, inside Spine. The password goes straight to archive.org. */
+/**
+ * Sign in to the Internet Archive in its own window (a frame inside Spine can't keep the sign-in).
+ * The password goes straight to archive.org. onDone(true) once that window is closed again.
+ */
 export function openLogin({ onDone } = {}) {
-  closePanel(true, true);
-  const el = document.createElement('div');
-  el.className = 'scan panel';
-  el.setAttribute('role', 'dialog');
-  el.setAttribute('aria-modal', 'true');
-  el.setAttribute('aria-label', 'Sign in to the Internet Archive');
-  el.innerHTML = `<div class="rbar top">
-      <button class="rbtn" data-close>${I.arrowL}<span>Cancel</span></button>
-      <p class="rtitle"><b>Internet Archive</b> · sign in to borrow books inside Spine</p>
-      <a class="ext" href="https://archive.org/account/signup" target="_blank" rel="noopener">Create a free account ${I.ext}</a>
-      <button class="btn btn-ink sm" data-done>I'm signed in</button>
-    </div>
-    <div class="panel-help" role="note"><p>This is the Internet Archive's own page. Your password goes to archive.org, not to Spine.${isSafari() ? ' <b>Safari blocks signing in inside other sites</b>; if it doesn\'t stick, sign in at archive.org in a new tab and use “Open in browser” for borrowed books.' : ''}</p></div>
-    <div class="panel-frame"><iframe src="https://archive.org/account/login" title="Internet Archive sign in" allow="clipboard-write"></iframe></div>`;
-  document.body.appendChild(el);
-  document.body.style.overflow = 'hidden';
-  const close = ok => { document.body.style.overflow = ''; el.remove(); if (ok) { store.prefs.archive = true; store.savePrefs(); } onDone?.(ok); };
-  $('[data-close]', el).onclick = () => close(false);
-  $('[data-done]', el).onclick = () => close(true);
-  $('[data-done]', el).focus();
+  const win = archiveWindow('https://archive.org/account/login', () => {
+    store.prefs.archive = true; store.savePrefs();
+    onDone?.(true);
+  });
+  if (!win) { store.prefs.archive = true; store.savePrefs(); onDone?.(true); }
 }

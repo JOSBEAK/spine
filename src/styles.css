@@ -691,3 +691,20 @@ form.inline input{height:38px;padding:0 10px;border:1px solid #dfe2e8;border-rad
 .btn-ink.danger{background:#a3262c;color:#fff}
 .confirm{margin-top:14px;padding:16px;border:1px solid #f0c9cb;background:#fdf5f5;border-radius:14px;display:flex;flex-direction:column;gap:12px;max-width:520px}
 @media (max-width:760px){.acct{padding:20px 16px 0}.link-row{grid-template-columns:40px minmax(0,1fr)}.lc{grid-column:2}.history li{grid-template-columns:1fr;gap:2px}}
+
+/* borrow bar: the preview is here, borrowing happens in the Archive's own window */
+.borrow-bar{display:flex;gap:12px;align-items:center;padding:12px 20px;background:#fbf6e6;border-bottom:1px solid #efe5c4;font-size:13.5px;color:#5c4a17;line-height:1.45}
+.borrow-bar:empty{display:none}
+.borrow-bar .bt{flex:1;max-width:920px}
+.borrow-bar .bt>span{color:#7a6a3a}
+.borrow-bar details{display:inline}
+.borrow-bar summary{display:inline;cursor:pointer;text-decoration:underline;text-underline-offset:3px;color:#7a6a3a;margin-left:4px}
+.borrow-bar summary::-webkit-details-marker{display:none}
+.borrow-bar details[open] summary{display:block;margin:6px 0 2px;text-decoration:none;font-weight:600;color:#5c4a17}
+.borrow-bar .btn{white-space:nowrap;flex:none}
+.borrow-bar .btn svg{width:16px;height:16px}
+.borrow-bar.on{background:#eef6ef;border-color:#d3e7d6;color:#24452b}
+.borrow-bar.on .bt>span{color:#4b6a51}
+.borrow-bar .dot{width:9px;height:9px;border-radius:50%;background:#2f9a4a;flex:none;box-shadow:0 0 0 0 rgba(47,154,74,.5);animation:livepulse 1.8s ease-out infinite}
+@keyframes livepulse{to{box-shadow:0 0 0 9px rgba(47,154,74,0)}}
+@media (max-width:760px){.borrow-bar{flex-wrap:wrap;padding:10px 14px}.borrow-bar .bt{flex-basis:100%}}

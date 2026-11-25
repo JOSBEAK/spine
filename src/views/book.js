@@ -43,7 +43,7 @@ function ways(b, st) {
   const borrow = isBorrow(b);
   const old = maybePublicDomain(b);
   if (borrow && S.lending !== false) {
-    out.push(stream('borrow', { icon: I.scan, title: 'Borrow free', text: 'Read it here for an hour, or borrow it for 14 days. Needs a free Internet Archive account, which you sign in to inside Spine.', src: 'Open Library lending library', go: 'Read here', best: !st.gut, ext: borrowURL(b) }));
+    out.push(stream('borrow', { icon: I.scan, title: 'Borrow free', text: 'Look inside here, then borrow it for an hour or for 14 days in the Archive\'s reader window. Needs a free archive.org account.', src: 'Open Library lending library', go: 'Look inside', best: !st.gut, ext: borrowURL(b) }));
   }
   if (S.gutenberg !== false && (!borrow || old)) {
     out.push(st.gut === undefined
