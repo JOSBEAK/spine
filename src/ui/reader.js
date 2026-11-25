@@ -10,6 +10,7 @@ import { define } from '../lib/dictionary.js';
 import { toneOf } from './book.js';
 import { I } from './icons.js';
 import { toast } from './toast.js';
+import { makeCurl, easeOut } from './pagecurl.js';
 
 let R = null;
 export const readerOpen = () => !!R;
@@ -264,12 +265,13 @@ function bookPct() {
 
 function draw() {
   const s = $('.spread', R.el), i = R.page;
+  if (R.peel) { cancelAnimationFrame(R.peel.raf); R.peel = null; }
+  s.classList.remove('turning', 'dragging');
   s.innerHTML = (R.two ? '<div class="board" aria-hidden="true"></div>' : '')
     + (R.two ? pageHTML(i, 'l') + pageHTML(i + 1, 'r') : pageHTML(i, 'r'))
     + '<div class="hit prev" aria-hidden="true"><span>‹</span></div><div class="hit next" aria-hidden="true"><span>›</span></div>'
     + (currentBookmark() ? '<div class="page-ribbon" aria-hidden="true"></div>' : '');
-  $('.hit.prev', s).onclick = () => turn(-1);
-  $('.hit.next', s).onclick = () => turn(1);
+  wireTurnZones(s);
   const pct = bookPct();
   s.style.setProperty('--stackL', (2 + pct * 10).toFixed(1) + 'px');
   s.style.setProperty('--stackR', (2 + (1 - pct) * 10).toFixed(1) + 'px');
@@ -323,59 +325,154 @@ function seek(pct) {
   goChapter(ch, clamp((pct - c.start) / c.share, 0, 0.999), 0);
 }
 
-export async function turn(dir) {
+const canTurn = dir => { const n = R.page + dir * (R.two ? 2 : 1); return n >= 0 && n <= R.pages - 1; };
+const spreadPoint = (e, s) => { const r = s.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+
+/**
+ * The folding sheet for a turn in direction `dir`, with the page it uncovers already in place underneath.
+ * Book view folds the right page over to the left (or the left page back to the right); page view lifts
+ * the page off to the left, and brings the previous one back from there.
+ */
+function makeTurnCurl(dir, y0) {
+  const s = $('.spread', R.el), W = R.pw, H = R.ph, i = R.page;
+  const pages = $$(':scope > .pg', s);
+  let cfg;
+  if (R.two) {
+    if (dir > 0) { pages[1].outerHTML = pageHTML(i + 3, 'r'); cfg = { xs: W, s: 1, front: pageHTML(i + 1, 'r'), fl: W, back: pageHTML(i + 2, 'l'), bl: 0 }; }
+    else { pages[0].outerHTML = pageHTML(i - 2, 'l'); cfg = { xs: W, s: -1, front: pageHTML(i, 'l'), fl: 0, back: pageHTML(i - 1, 'r'), bl: W }; }
+  } else if (dir > 0) {
+    pages[0].outerHTML = pageHTML(i + 1, 'r');
+    cfg = { xs: 0, s: 1, front: pageHTML(i, 'r'), fl: 0, back: '<div class="pg l"></div>', bl: -W, single: true };
+  } else {
+    cfg = { xs: 0, s: 1, front: pageHTML(i - 1, 'r'), fl: 0, back: '<div class="pg l"></div>', bl: -W, single: true, reverse: true };
+  }
+  s.classList.add('turning');
+  $('.page-ribbon', s)?.remove();
+  const c = makeCurl(s, { ...cfg, W, H, y0 });
+  Object.assign(c, { dir, s: cfg.s, reverse: !!cfg.reverse });
+  c.set(c.reverse ? c.E : c.C);
+  return c;
+}
+
+const stopFollow = c => { c.target = null; cancelAnimationFrame(c.raf); c.raf = 0; };
+
+export async function turn(dir, { y0, curl } = {}) {
   if (!R || !(R.text || R.scan) || R.busy) return;
   closePop();
   input();
+  // a page already lifted by the pointer finishes its turn; one lifted the other way is let go
+  if (!curl && R.peel) { if (R.peel.dir === dir) curl = R.peel; else { R.peel.destroy(); R.peel = null; } }
   const step = R.two ? 2 : 1;
   const next = R.page + dir * step;
   if (next < 0 || next > R.pages - 1) {
+    if (curl) { curl.destroy(); R.peel = null; draw(); }
     if (R.mode === 'text' && dir > 0 && R.ch < R.text.chapters.length - 1) return goChapter(R.ch + 1, 0, 1);
     if (R.mode === 'text' && dir < 0 && R.ch > 0) return goChapter(R.ch - 1, 0.999, -1);
     $('.spread', R.el).animate([{ transform: 'translateX(0)' }, { transform: `translateX(${-dir * 8}px)` }, { transform: 'translateX(0)' }], { duration: 260 });
     return;
   }
   if (R.sess) R.sess.pages += step;
-  if (reduceMotion()) { R.page = next; draw(); return; }
+  if (reduceMotion()) { curl?.destroy(); R.peel = null; R.page = next; draw(); return; }
   R.busy = true;
-  const s = $('.spread', R.el);
-  const pw = R.pw, i = R.page;
-  const pages = $$(':scope > .pg', s);
-  const leaf = document.createElement('div'); leaf.className = 'turnleaf';
-  let under = () => {};
-  if (R.two) {
-    if (dir > 0) {
-      leaf.style.left = pw + 'px'; leaf.style.transformOrigin = 'left center';
-      leaf.innerHTML = pageHTML(i + 1, 'r') + pageHTML(i + 2, 'l backside');
-      under = () => { pages[1].outerHTML = pageHTML(i + 3, 'r'); };
-    } else {
-      leaf.style.left = '0px'; leaf.style.transformOrigin = 'right center';
-      leaf.innerHTML = pageHTML(i, 'l') + pageHTML(i - 1, 'r backside');
-      under = () => { pages[0].outerHTML = pageHTML(i - 2, 'l'); };
-    }
-  } else {
-    leaf.style.left = '0px'; leaf.style.transformOrigin = 'left center';
-    if (dir > 0) { leaf.innerHTML = pageHTML(i, 'r') + '<div class="pg l backside"></div>'; under = () => { pages[0].outerHTML = pageHTML(i + 1, 'r'); }; }
-    else leaf.innerHTML = pageHTML(i - 1, 'r') + '<div class="pg l backside"></div>';
-  }
-  $$('.pg', leaf).forEach(p => p.insertAdjacentHTML('beforeend', '<div class="shade"></div>'));
-  under();
-  $('.page-ribbon', s)?.remove();
-  s.appendChild(leaf);
-  const single = !R.two;
-  const from = single && dir < 0 ? -180 : 0;
-  const to = single ? (dir < 0 ? 0 : -180) : (dir > 0 ? -180 : 180);
-  const dur = 720;
-  const a = leaf.animate([
-    { transform: `rotateY(${from}deg)` },
-    { transform: `rotateY(${(from + to) / 2}deg) translateZ(12px)`, offset: 0.5 },
-    { transform: `rotateY(${to}deg)` },
-  ], { duration: dur, easing: 'cubic-bezier(.45,.05,.25,1)', fill: 'forwards' });
-  const g = dir > 0 ? 'linear-gradient(90deg,rgba(0,0,0,.18),rgba(0,0,0,0) 60%)' : 'linear-gradient(270deg,rgba(0,0,0,.18),rgba(0,0,0,0) 60%)';
-  $$('.shade', leaf).forEach(sh => { sh.style.background = g; sh.animate([{ opacity: 0 }, { opacity: 1, offset: 0.5 }, { opacity: 0 }], { duration: dur }); });
-  try { await a.finished; } catch { /* reader closed mid-turn */ }
-  if (!R) return;
+  const c = curl || makeTurnCurl(dir, y0 ?? R.ph);
+  stopFollow(c);
+  R.peel = null;
+  await c.go(c.reverse ? c.C : c.E, curl ? { ease: easeOut } : {});
+  if (!R || !c.el.isConnected) return;
   R.page = next; R.busy = false; draw();
+}
+
+/* The page edges: click to turn, point at a corner and it lifts a little, grab it and drag the page over. */
+function wireTurnZones(s) {
+  for (const hit of $$('.hit', s)) {
+    const dir = hit.classList.contains('next') ? 1 : -1;
+    hit.onclick = e => {
+      if (R.dragged) { R.dragged = false; return; }
+      turn(dir, { y0: spreadPoint(e, s).y < R.ph / 2 ? 0 : R.ph });
+    };
+    if (reduceMotion()) continue;
+    hit.onpointermove = e => { if (e.pointerType === 'mouse' && !e.buttons && !R.busy && !R.drag) peel(dir, e, s); };
+    hit.onpointerleave = () => { if (!R.drag) unpeel(); };
+    hit.onpointerdown = e => startDrag(dir, e, hit, s);
+  }
+}
+
+// The corner nearest the pointer follows it a little: the closer you get, the more it lifts.
+function peel(dir, e, s) {
+  if (!canTurn(dir) || (!R.two && dir < 0)) return;
+  const p = spreadPoint(e, s), y0 = p.y < R.ph / 2 ? 0 : R.ph;
+  if (R.peel && R.peel.dir !== dir) { R.peel.destroy(); R.peel = null; }
+  if (!R.peel) R.peel = makeTurnCurl(dir, y0);
+  const c = R.peel;
+  if (c.C.y !== y0) c.setCorner(y0);
+  const C = c.C, v = { x: p.x - C.x, y: p.y - C.y }, dist = Math.hypot(v.x, v.y) || 1;
+  const reach = Math.min(120, R.pw * 0.28) * Math.max(0.3, 1 - dist / (R.ph * 0.8));
+  follow(c, { x: C.x + (v.x / dist) * reach, y: C.y + (v.y / dist) * reach });
+}
+
+function follow(c, target) {
+  c.target = c.constrain(target);
+  if (c.raf) return;
+  const tick = () => {
+    if (!c.el.isConnected || !c.target) { c.raf = 0; return; }
+    const P = c.P || c.C;
+    const q = { x: P.x + (c.target.x - P.x) * 0.24, y: P.y + (c.target.y - P.y) * 0.24 };
+    c.set(q);
+    if (Math.hypot(c.target.x - q.x, c.target.y - q.y) < 0.3) { c.raf = 0; return; }
+    c.raf = requestAnimationFrame(tick);
+  };
+  c.raf = requestAnimationFrame(tick);
+}
+
+async function unpeel() {
+  const c = R?.peel;
+  if (!c) return;
+  R.peel = null;
+  stopFollow(c);
+  await c.go(c.C, { ms: 240, ease: easeOut });
+  c.destroy();
+  if (R && !R.busy && !R.peel && !R.drag) draw(); // put the real pages back underneath
+}
+
+// Grab the page and pull it over. Let go past the middle (or with a flick) and it finishes the turn.
+function startDrag(dir, e, hit, s) {
+  if (e.button !== 0 || R.busy || !canTurn(dir)) return;
+  const start = spreadPoint(e, s), y0 = start.y < R.ph / 2 ? 0 : R.ph;
+  let c = null, moved = false;
+  const trail = [];
+  try { hit.setPointerCapture(e.pointerId); } catch { /* not capturable */ }
+  const move = ev => {
+    const p = spreadPoint(ev, s);
+    if (!moved) {
+      if (Math.hypot(p.x - start.x, p.y - start.y) < 6) return;
+      moved = true; R.drag = true;
+      if (R.peel && R.peel.dir === dir) c = R.peel; else { R.peel?.destroy(); c = makeTurnCurl(dir, y0); }
+      R.peel = null; stopFollow(c);
+      R.busy = true;
+      s.classList.add('dragging');
+      getSelection()?.removeAllRanges();
+    }
+    trail.push({ x: p.x, t: performance.now() }); if (trail.length > 6) trail.shift();
+    c.set(p);
+  };
+  const up = async () => {
+    hit.removeEventListener('pointermove', move); hit.removeEventListener('pointerup', up); hit.removeEventListener('pointercancel', up);
+    if (!moved || !R) return;
+    R.dragged = true; setTimeout(() => { if (R) R.dragged = false; }, 60);
+    s.classList.remove('dragging');
+    const v = trail.length > 1 ? (trail.at(-1).x - trail[0].x) / Math.max(1, trail.at(-1).t - trail[0].t) : 0;
+    const pr = c.progress(), toward = -c.s * v; // > 0: moving the way the page turns
+    const done = c.reverse ? (pr < 0.6 || -toward > 0.45) && -toward > -0.45 : (pr > 0.38 || toward > 0.45) && toward > -0.45;
+    R.drag = false; R.busy = false;
+    if (done) return turn(dir, { curl: c });
+    R.busy = true;
+    await c.go(c.reverse ? c.E : c.C, { ease: easeOut });
+    if (!R || !c.el.isConnected) return;
+    R.busy = false; draw();
+  };
+  hit.addEventListener('pointermove', move);
+  hit.addEventListener('pointerup', up);
+  hit.addEventListener('pointercancel', up);
 }
 
 /* ---------------- bookmarks ---------------- */

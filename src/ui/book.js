@@ -9,7 +9,7 @@ export const toneOf = b => store.tone(b.id) || b.tone || clothFor(b.id);
 export const isBorrow = b => b.access === 'borrowable';
 export const isTextbook = b => b.kind === 'textbook';
 
-function frontHTML(b) {
+export function frontHTML(b) {
   const tone = toneOf(b);
   if (isTextbook(b)) {
     return `<div class="tb ${isLight(tone) ? 'light' : ''}" style="background:${tone}">${b.coverArt ? `<img src="${b.coverArt}" alt="" loading="lazy" decoding="async">` : `<b>${esc(b.title)}</b>`}<i>${esc(b.subject)}</i><small>OpenStax</small></div>`;
